@@ -151,3 +151,47 @@ testMatchTimeCaptureSubcapturesAreCached = function
 	qa.assertEqual n, 1
 end function
 
+
+testMatchTimeSemanticError = function
+	g = peg.makeGrammar(" A <- ( 'foo' {ERR} ) :xxx: ")
+	
+	peg = outer.peg
+	_ERR = function(match, captures, arg)
+		return peg.makeError(match.fragment)
+	end function
+	
+	g.addCaptureAction "ERR", @_ERR
+	
+	_xxx = function(match, captures, arg, ctx)
+		c = captures
+		match.capture = function(_,_,_)
+			return c
+		end function
+		return match
+	end function
+	
+	g.addMatchTimeAction "xxx", @_xxx
+	
+	res = g.parse("foo")
+	qa.assertEqual res.match.nodeToStr, "Match(0, 3, foo, Grammar(A))"
+	qa.assertEqual res.length, null
+	qa.assertEqual res.errors[0] isa peg.SemanticError, true
+	qa.assertEqual res.errors[0].message, "foo"
+	qa.assertEqual res.captures, []
+end function
+
+
+testMatchTimeShortcut = function
+	g = new peg.Grammar
+	g.init "A<-'foo':xxx:"
+	
+	g.matchTime "xxx", function(match, subcaptures, arg, ctx)
+		match.capture = function(_,_,_)
+			return match.fragment
+		end function
+		return match
+	end function
+	
+	qa.assertEqual g.parse("foo").capture, "foo"
+end function
+

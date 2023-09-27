@@ -290,6 +290,7 @@ Pattern.matchSyntax = function(ctx, arg=null)
 				return caps
 			end function
 			match = action(match, @subcaptures, arg, ctx)
+			if match != null and not match isa Match then abort "Expected a Match object, got `" + match + "`"
 		else if match == null then
 			ctx.addSyntaxError self.matchTimeTag, action
 		end if
@@ -1017,6 +1018,8 @@ Grammar.addCaptureAction = function(arg1, arg2, arg3=null)
 	self.captureActions[[ruleName, tag]] = @action
 end function
 
+Grammar.capture = @Grammar.addCaptureAction
+
 
 // findCaptureAction: Returns the callback previously registered with `.addCaptureAction`.
 Grammar.findCaptureAction = function(ruleName, captureTag)
@@ -1046,6 +1049,8 @@ Grammar.addMatchTimeAction = function(arg1, arg2, arg3=null)
 	if not tag isa string then abort "Expected string, got `" + tag + "`"
 	self.matchTimeActions[[ruleName, tag]] = @errorMessage
 end function
+
+Grammar.matchTime = @Grammar.addMatchTimeAction
 
 
 // findMatchTimeAction: Returns the callback previously registered with `.addMatchTimeAction`.
@@ -1555,4 +1560,12 @@ end function
 
 // Library level grammar object to parse PEG strings.
 pegGrammar = _makePegGrammar
+
+
+// patternOrLiteral: Converts `x` to a Literal unless it's already a Pattern.
+patternOrLiteral = function(x)
+	if x isa Pattern then return x
+	if x isa string then return makeLiteral(x)
+	abort "Expected string or Pattern, got `" + x + "`"
+end function
 

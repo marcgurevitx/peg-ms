@@ -21,6 +21,19 @@ testExampleParseList = function
 end function
 
 
+testLpegExampleAB = function
+	g = new peg.Grammar
+	g.init  " S <- 'a' B / 'b' A / '' " +
+	        " A <- 'a' S / 'b' A A " +
+	        " B <- 'b' S / 'a' B B ",
+	        "S"
+	
+	qa.assertEqual g.parse("abba").length, 4
+	qa.assertEqual g.parse("abbbbbbb").length, 2
+	qa.assertEqual g.parse("bbbbbbb").length, 0
+end function
+
+
 testLpegExampleAddNumerals = function
 	g = peg.makeGrammar("  number  <-  [0-9]+ {tonumber}                    " +
 	                    "  sum     <-  ( number  ( ','  number ) * ) {sum}  ")

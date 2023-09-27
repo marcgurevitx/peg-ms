@@ -277,3 +277,15 @@ testAddCaptureWithRuleName = function
 	qa.assertEqual c, [42]
 end function
 
+
+testCaptureShortcut = function
+	g = new peg.Grammar
+	g.init "A<-'foo'{xxx}"
+	
+	g.capture "xxx", function(match, subcaptures, arg)
+		return match.fragment
+	end function
+	
+	qa.assertEqual g.parse("foo").capture, "foo"
+end function
+
