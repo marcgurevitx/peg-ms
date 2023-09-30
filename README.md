@@ -68,7 +68,7 @@ Captures are expressed with (non standard) suffixes which have the same preceden
 
 ## ParseResult object
 
-`Grammar.parse` returns the result as a `ParseResult` object.
+`Grammar.parse` returns a `ParseResult` object.
 
 | Field | Type | Description |
 | --- | --- | --- |
@@ -76,15 +76,14 @@ Captures are expressed with (non standard) suffixes which have the same preceden
 | `result.match` | `Match` or `null` | syntax tree |
 | `result.errors` | `list` of `Error`s | list of syntax and/or semantic errors |
 | `result.captures` | `list` | list of captured values |
+| `result.capture` | | a value from `result.captures` if there's exactly one value, otherwise `null` |
 
 To check for success/failure, compare `ParseResult.length` with `null`.
-
-If exactly one value was captured, it can be exrtacted with `ParseResult.capture`.
 
 
 ## Match Object
 
-Syntax trees are stored as Match objects.
+Syntax trees built by patterns are represented as `Match` objects.
 
 | Field | Type | Description |
 | --- | --- | --- |
@@ -94,8 +93,63 @@ Syntax trees are stored as Match objects.
 | `match.pattern` | `Pattern` | pattern instance that created a match |
 | `match.children` | `list` of `Match`es | submatches |
 
+One optional field is a `match.capture` which normally is a _function capture_ callback of a corresponding pattern (if any).
+
+
+## Simple capture
+
+The suffix `{}` creates a _simple capture_ which captures the text fragment and _appends_ it to the list of all captures.
+
+
+## Function capture
+
+The suffix `{name}` creates a _function capture_ which invokes a callback function registered by `Grammar.capture name, @func`.
+
+The callback is invoked with the following arguments.
+
+| Argument | Type | Description |
+| --- | --- | --- |
+| `match` | `Match` | matched fragment or tree |
+| `subcaptures` | `list` | list of values captured by the subpatterns |
+| `arg` | | optional argument to `Grammar.parse` |
+
+The returned value becomes a new capture. Unlike with simple capture, it replaces the **subcaptures**.
+
+To append _many_ captures, push them into `subcaptures` and return the list. Returning some other list of values will make it an individual capture. It will not flatten into the total list of captures.
+
+To append _no_ captures, remove everything from `subcaptures` and return the list. Returning `none` will append the actual `none` value to the total captures.
+
+To interrupt the parsing and finish it with an error, return a `peg.Error` object. This error will show up in `ParseResult.errors`.
+
+
+## Match-time capture
+
+The suffix `:name:` creates a _match-time capture_ which invokes a callback function registered by `Grammar.matchTime name, @func` at the matching stage of parsing.
+
+Unlike _function capture_ that only handles successful match tree nodes after the whole grammar matched, _match-time capture_ allows to handle all pattern matching results, including failed ones and ones which initially succeeded but whose containing pattern still failed later.
+
+The callback is invoked with the following arguments.
+
+| Argument | Type | Description |
+| --- | --- | --- |
+| `match` | `Match` or `null` | matched fragment or tree (or `null` if the pattern failed) |
+| `subcaptures` | `function` that returns a `list` | list of subcaptures (only evaluated if gets invoked) |
+| `arg` | | optional argument to `Grammar.parse` |
+| `ctx` | `ParseConrext` | collection of data associated with current call to `Grammar.parse` |
+
+The return value of the callback defines whether the match should be considered successfull.
+
+- a `Match` object -- success
+- `null` -- failure
+
+It's impossible to interrupt the parsing by returning `null`, because patterns may fail and it's a normal thing. However, errors still can be signalled by either pushing them to the `ctx.errors` list or by calling `ctx.addSyntaxError name, errMsg`.
+
+When no callback is defined for `name`, the suffix `:name:` acts as a shortcut for "report syntax error on the pattern's failure".
+
 
 ## Examples
+
+(The examples use `import "peg"` for simple looks, but to avoid rebuilding `pegGrammar` use `ensureImport`.)
 
 (Most of these come from the [LPeg manual](https://www.inf.puc-rio.br/~roberto/lpeg/).)
 
@@ -107,9 +161,9 @@ import "peg"
 
 equalAB = new peg.Grammar
 equalAB.init    " S <- 'a' B / 'b' A / '' " +
-	            " A <- 'a' S / 'b' A A " +
-	            " B <- 'b' S / 'a' B B ",
-	            "S"
+                " A <- 'a' S / 'b' A A " +
+                " B <- 'b' S / 'a' B B ",
+                "S"
 
 result = equalAB.parse("abbabbbbbb")
 print result.length         // 4
@@ -126,8 +180,8 @@ import "peg"
 
 addNumbers = new peg.Grammar
 addNumbers.init "  number      <-  [0-9]+ {}  " +
-	            "  addNumbers  <-  ( number  ( ','  number ) * ) {add}  ",
-	            "addNumbers"
+                "  addNumbers  <-  ( number  ( ','  number ) * ) {add}  ",
+                "addNumbers"
 
 addNumbers.capture "add", function(match, subcaptures, arg)
 	add = 0
@@ -148,8 +202,8 @@ import "peg"
 
 stringUpper = new peg.Grammar
 stringUpper.init    "  name  <-  [a-z]+ {}  " +
-	                "  stringUpper    <-  ( name  '^' {} ? ) {upper}  ",
-	                "stringUpper"
+                    "  stringUpper    <-  ( name  '^' {} ? ) {upper}  ",
+                    "stringUpper"
 
 stringUpper.capture "upper", function(match, subcaptures, arg)
 	if subcaptures.len == 1 then return subcaptures[0] else return subcaptures[0].upper
@@ -171,7 +225,7 @@ nameValueList.init  "  space  <-  [ \t\n\r] *  " +
                     "  sep    <-  [,;]  space  " +
                     "  pair   <-  ( name  '='  space  name  sep ? )  " +
                     "  list   <-  pair * {list}  ",
-	                "list"
+                    "list"
 
 nameValueList.capture "list", function(match, subcaptures, arg)
 	vals = {}
@@ -197,7 +251,7 @@ splitString = new peg.Grammar
 splitString.init    " sep     <-  $ " +
                     " elem    <-  ( ! sep  . ) * {} " +
                     " result  <-  elem  ( sep  elem ) * ",
-	                "result"
+                    "result"
 
 split = function(s, sep)
 	sep = peg.patternOrLiteral(sep)
@@ -216,8 +270,8 @@ import "peg"
 
 searchForPatt = new peg.Grammar
 searchForPatt.init  "  pattern  <-  $                                " +
-	                "  search   <-  pattern {patt}  /  .  search  ",
-	                "search"
+                    "  search   <-  pattern {patt}  /  .  search  ",
+                    "search"
 
 searchForPatt.capture "patt", function(match, subcaptures, arg)
 	return [match.start, match.start + match.length]
@@ -258,7 +312,7 @@ import "peg"
 
 gsubGrammar = new peg.Grammar
 gsubGrammar.init    "  pattern  <-  $  " +
-	                "  gsub     <-  ( ( pattern {sub}  /  . {} ) * )  "
+                    "  gsub     <-  ( ( pattern {sub}  /  . {} ) * )  "
 
 gsubGrammar.capture "sub", function(match, subcaptures, arg)
 	return arg.repl
