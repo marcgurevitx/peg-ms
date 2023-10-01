@@ -31,9 +31,13 @@ maxRest = 10
 if globals.hasIndex("abort") then
 	abort = @globals.abort
 else
+	maxStack = 15
+	extraStack = 3
 	abort = function(msg)
 		print msg
-		stackTrace.apply @print
+		s = stackTrace[:]
+		if s.len > maxStack + extraStack then s = s[:maxStack/2] + ["... (+" + (s.len - maxStack) + " lines) ..."] + s[-maxStack/2:]
+		s.apply @print
 		exit
 	end function
 end if
