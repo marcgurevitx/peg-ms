@@ -101,8 +101,8 @@ end function
 
 // checkInstance: Aborts if x is not instance of Tree class/subclass.
 Tree._checkInstance = function(x)
-	if not x isa Tree then abort "Expected Tree, got `" + x + "`."
-	if not x._isInstance then abort "Expected instance, got `" + x._str + "`."
+	if not x isa Tree then abort "Bad tree node, expected Tree, got `" + x + "`."
+	if not x._isInstance then abort "Bad tree node, expected instance, got `" + x._str + "`."
 end function
 
 
@@ -115,7 +115,7 @@ end function
 
 // getOnlyChild: Retrieves subnode if there's only one.
 Tree.getOnlyChild = function
-	if self.children.len != 1 then abort "Expected one child, got `" + self.children + "`"
+	if self.children.len != 1 then abort "Unable to get the only subnode, has " + self.children.len + ": " + self.children
 	return self.children[0]
 end function
 
@@ -331,7 +331,7 @@ Pattern.matchSyntax = function(ctx, arg=null)
 				return caps
 			end function
 			match = action(match, @subcaptures, arg, ctx)
-			if match != null and not match isa Match then abort "Expected a Match object, got `" + match + "`"
+			if match != null and not match isa Match then abort "Bad return value from match-time action: expected null or Match, got `" + match + "`"
 		else if match == null then
 			ctx.addSyntaxError self.matchTimeTag, action
 		end if
@@ -1077,7 +1077,7 @@ Grammar.getRulePattern = function(ruleName, arg)
 	if self.rules.hasIndex(ruleName) then return self.rules[ruleName]
 	pattern = arg.get(ruleName)
 	if pattern == null then abort "Pattern not found for rule `" + ruleName + "`"
-	if not pattern isa Pattern then abort "Expected Pattern subclass, got `" + pattern + "`"
+	if not pattern isa Pattern then abort "Bad pattern for rule `" + ruleName + "`, expected Pattern, got `" + pattern + "`"
 	return pattern
 end function
 
@@ -1087,7 +1087,7 @@ end function
 // The callback should have a signature: f(match, subcaptures, arg) -> capture.
 // Optional first arg is the name of the rule whose definition contains the tag.
 Grammar.addCaptureAction = function(arg1, arg2, arg3=null)
-	if arg3 == null then
+	if @arg3 == null then
 		ruleName = null
 		tag = arg1
 		action = @arg2
@@ -1095,9 +1095,9 @@ Grammar.addCaptureAction = function(arg1, arg2, arg3=null)
 		ruleName = arg1
 		tag = arg2
 		action = @arg3
-		if not ruleName isa string then abort "Expected string, got `" + ruleName + "`"
+		if not ruleName isa string then abort "Bad rule name, expected string, got `" + ruleName + "`"
 	end if
-	if not tag isa string then abort "Expected string, got `" + tag + "`"
+	if not tag isa string then abort "Bad capture tag, expected string, got `" + tag + "`"
 	self.captureActions[[ruleName, tag]] = @action
 end function
 
@@ -1119,7 +1119,7 @@ end function
 // If the callback is a string, then it will be used as an error message if the match fails.
 // Optional first arg is the name of the rule whose definition contains the tag.
 Grammar.addMatchTimeAction = function(arg1, arg2, arg3=null)
-	if arg3 == null then
+	if @arg3 == null then
 		ruleName = null
 		tag = arg1
 		errorMessage = @arg2
@@ -1127,9 +1127,9 @@ Grammar.addMatchTimeAction = function(arg1, arg2, arg3=null)
 		ruleName = arg1
 		tag = arg2
 		errorMessage = @arg3
-		if not ruleName isa string then abort "Expected string, got `" + ruleName + "`"
+		if not ruleName isa string then abort "Bad rule name, expected string, got `" + ruleName + "`"
 	end if
-	if not tag isa string then abort "Expected string, got `" + tag + "`"
+	if not tag isa string then abort "Bad capture tag, expected string, got `" + tag + "`"
 	self.matchTimeActions[[ruleName, tag]] = @errorMessage
 end function
 
@@ -1649,6 +1649,6 @@ pegGrammar = _makePegGrammar
 patternOrLiteral = function(x)
 	if x isa Pattern then return x
 	if x isa string then return makeLiteral(x)
-	abort "Expected string or Pattern, got `" + x + "`"
+	abort "Bad arg to patternOrLiteral, expected string or Pattern, got `" + x + "`"
 end function
 
