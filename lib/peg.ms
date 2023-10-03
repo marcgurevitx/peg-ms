@@ -270,6 +270,43 @@ Pattern.matchTimeTag = null
 Pattern.captureTag = null
 
 
+// normalize: Tries to make the pattern tree less nested by fusing nodes.
+Pattern.normalize = function
+	children = []
+	for child in self.children
+		children.push child.normalize
+	end for
+	self.children = children
+	if self.get("_normalizeNode") != null then
+		pattern = self._normalizeNode
+	else
+		pattern = self
+	end if
+	return pattern
+end function
+
+
+// _tryFuseOnlyChild: If the pattern has the only subnode, returns it to be used instead self (if possible).
+// Concat() and Choice() call it.
+Pattern._tryFuseOnlyChild = function
+	if self.children.len > 1 then return self
+	child = self.children[0]
+	mt = [self, child]
+	mt.filter function(p)
+		return p.hasIndex("matchTimeTag")
+	end function
+	if mt.len > 1 then return self
+	cap = [self, child]
+	cap.filter function(p)
+		return p.hasIndex("captureTag")
+	end function
+	if cap.len > 1 then return self
+	if mt.len > 0 then child.matchTimeTag = mt[0].matchTimeTag
+	if cap.len > 0 then child.captureTag = cap[0].captureTag
+	return child
+end function
+
+
 // matchSyntax: Matches a string and a pattern.
 // `ctx` -- a ParsingContext object
 // `arg` -- optional data passed to `Grammar.parse`
@@ -588,6 +625,30 @@ Choice.nodeToStr = function
 end function
 
 
+// _normalizeNode: Fuses single character literals into a CharSet and/or uses the only subpattern as self.
+Choice._normalizeNode = function
+	characters = []
+	charIndexes = []
+	for i in self.children.indexes
+		child = self.children[i]
+		if not child isa Literal then continue
+		if child.string_.len != 1 then continue
+		if child.matchTimeTag != null then continue
+		if child.captureTag != null then continue
+		characters.push child.string_
+		charIndexes.push i
+	end for
+	if characters.len > 0 then
+		for i in charIndexes.reversed
+			self.children.remove i
+		end for
+		self.addChild makeCharSet(characters.join(""))
+	end if
+	pattern = self._tryFuseOnlyChild
+	return pattern
+end function
+
+
 // _matchSyntaxLogic: Succeeds if one of subpattern succeeds.
 Choice._matchSyntaxLogic = function(ctx, arg=null)
 	for pattern in self.children
@@ -626,6 +687,14 @@ end function
 Concat.nodeToStr = function
 	return "Concat()" + self.tags
 end function
+
+
+// _normalizeNode: Uses the only subpattern as self (if possible).
+Concat._normalizeNode = function
+	pattern = self._tryFuseOnlyChild
+	return pattern
+end function
+
 
 
 // _matchSyntaxLogic: Succeeds if all the subpatterns match in succession.
@@ -929,6 +998,9 @@ Grammar._parsePegString = function(pegString)
 		end for
 		abort "Bad grammar; possible reasons: " + reasons
 	end if
+	for kv in res.capture.rules
+		res.capture.rules[kv.key] = kv.value.normalize
+	end for
 	return res.capture
 end function
 

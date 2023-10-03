@@ -49,19 +49,15 @@ testMatchTimeCaptureFakeMatch = function
 	g.addMatchTimeAction "xxx", @_f
 	
 	res = g.parse("")
-	qa.assertEqual res.match._str,  "Match(0, 3, , Grammar(A))" + _NL +
-	                                " Match(0, 3, , Choice())"  + _NL +
-	                                "  Match(0, 3, , Concat())" + _NL +
-	                                "   Match(0, 3, bar, )"
+	qa.assertEqual res.match._str,  "Match(0, 3, bar, Grammar(A))" + _NL +
+	                                " Match(0, 3, bar, )"
 	qa.assertEqual res.length, 3
 	qa.assertEqual res.errors, []
 	qa.assertEqual res.captures, []
 	
 	res = g.parse("foo")
-	qa.assertEqual res.match._str,  "Match(0, 3, foo, Grammar(A))" + _NL +
-	                                " Match(0, 3, foo, Choice())"  + _NL +
-	                                "  Match(0, 3, foo, Concat())" + _NL +
-	                                "   Match(0, 3, bar, )"
+	qa.assertEqual res.match._str,  "Match(0, 3, bar, Grammar(A))" + _NL +
+	                                " Match(0, 3, bar, )"
 	qa.assertEqual res.length, 3
 	qa.assertEqual res.errors, []
 	qa.assertEqual res.captures, []
