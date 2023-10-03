@@ -613,6 +613,7 @@ Choice._name = "Choice"
 
 
 Choice.init = function(patterns)
+	if patterns.len == 0 then abort "Choices of zero patterns are not supported"
 	super.init
 	for pattern in patterns
 		self.addChild pattern
@@ -677,6 +678,7 @@ Concat._name = "Concat"
 
 
 Concat.init = function(patterns)
+	if patterns.len == 0 then abort "Concatenations of zero patterns are not supported"
 	super.init
 	for pattern in patterns
 		self.addChild pattern
@@ -696,11 +698,11 @@ Concat._normalizeNode = function
 end function
 
 
-
 // _matchSyntaxLogic: Succeeds if all the subpatterns match in succession.
 Concat._matchSyntaxLogic = function(ctx, arg=null)
 	subms = []
 	index = ctx.index
+	fragments = []
 	for pattern in self.children
 		subm = pattern.matchSyntax(ctx + {"index": index}, arg)
 		if subm == null then
@@ -708,9 +710,10 @@ Concat._matchSyntaxLogic = function(ctx, arg=null)
 		end if
 		subms.push subm
 		index += subm.length
+		fragments.push subm.fragment
 	end for
 	length = index - ctx.index
-	fragment = ctx.subject[ctx.index : index]
+	fragment = fragments.join("")
 	match = new Match
 	match.init ctx.index, length, fragment, self
 	for subm in subms
@@ -786,14 +789,16 @@ ZeroOrMore._matchSyntaxLogic = function(ctx, arg=null)
 	pattern = self.getOnlyChild
 	subms = []
 	index = ctx.index
+	fragments = []
 	while true
 		subm = pattern.matchSyntax(ctx + {"index": index}, arg)
 		if subm == null then break
 		subms.push subm
 		index += subm.length
+		fragments.push subm.fragment
 	end while
 	length = index - ctx.index
-	fragment = ctx.subject[ctx.index : index]
+	fragment = fragments.join("")
 	match = new Match
 	match.init ctx.index, length, fragment, self
 	for subm in subms
@@ -831,17 +836,19 @@ OneOrMore._matchSyntaxLogic = function(ctx, arg=null)
 	pattern = self.getOnlyChild
 	subms = []
 	index = ctx.index
+	fragments = []
 	while true
 		subm = pattern.matchSyntax(ctx + {"index": index}, arg)
 		if subm == null then break
 		subms.push subm
 		index += subm.length
+		fragments.push subm.fragment
 	end while
 	if subms.len == 0 then
 		return null
 	end if
 	length = index - ctx.index
-	fragment = ctx.subject[ctx.index : index]
+	fragment = fragments.join("")
 	match = new Match
 	match.init ctx.index, length, fragment, self
 	for subm in subms
