@@ -15,10 +15,9 @@ Parse a comma-separated list of numbers surrounded by brackets.
 import "peg"
 
 listOfNumbers = new peg.Grammar
-listOfNumbers.init  "list   <- '[' space number (',' space number)* space ']' " +
+listOfNumbers.init  "list   :  '[' space number (',' space number)* space ']' " +
                     "number <- ([+-]? [0-9]+) {tonumber} " +
-                    "space  <- ' '* ",
-                    "list"
+                    "space  <- ' '* "
 
 listOfNumbers.capture "tonumber", function(match, subcaptures, arg)
 	return match.fragment.val
@@ -31,8 +30,6 @@ print listOfNumbers.parse("[ 44, 55 ]").captures    // [44, 55]
 
 
 ## Syntax
-
-### Grammar syntax
 
 Most of [standard PEG](https://bford.info/pub/lang/peg.pdf) syntax is implemented.
 
@@ -56,81 +53,306 @@ Comments begin with `#` and go until the end of line.
 
 Character classes and literals may include escapes: `\t`, `\r`, `\n`, `\[`, `\]`, `\'`, `\"`, `\\` and `\uXXXX` (hexadecimal unicode).
 
-
-### Capture / actions syntax
-
-A __capture__ is a pattern that produces values (the so called semantic information) according to what it matches.
-
-Captures in `peg.ms` are expressed with (non standard) suffixes which have the same precedence as `?*+`.
+Additionally, the library supports some nonstandard syntax:
 
 | Syntax | Description | Precedence |
 | --- | --- | --- |
-| `p {}` | simple (anonymous) capture | 4 |
-| `p {name}` | function capture | 4 |
+| `p {name}` | capture | 4 |
 | `p <name>` | match-time action | 4 |
+| `name <- $` | dynamic inclusion rule | |
+| `name : p` | default initial rule | |
+
+Suffixes `{}` and `<>` have the same precedence as `?*+`.
 
 
-## Classes
+## API highlight
 
-### ParseResult object
+Create a grammar with `new` and initialize it with `.init(DEFINITIONS)`:
 
-`Grammar.parse` returns a `ParseResult` object.
+```
+import "peg"
+g = new peg.Grammar
+g.init "A <- 'a'+"
+```
+
+If the grammar has many rules, one of them can be set as the initial rule by passing its name as the second parameter to `.init`:
+
+```
+import "peg"
+g = new peg.Grammar
+g.init "A <- 'a'+  C <- B  B <- A",
+       "C"
+```
+
+Alternatively, mark the initial rule with `:`
+
+```
+import "peg"
+g = new peg.Grammar
+g.init "A <- 'a'+  C: B  B <- A"  // (C: B) is the initial rule
+```
+
+To inspect the pattern tree built from the PEG string use `._str`:
+
+```
+import "peg"
+g = new peg.Grammar
+g.init "A <- 'a'+  C: B  B <- A"
+
+print g._str  // Grammar(C) ...
+```
+
+To parse a subject text, use `.parse(TEXT)`:
+
+```
+import "peg"
+g = new peg.Grammar
+g.init "A <- 'a'+  C: B  B <- A"
+result = g.parse("aaa")
+```
+
+The full list of parameters to `.parse` are the following:
+
+| Parameter | Type | Default | Description |
+| --- | --- | --- | --- |
+| `subject` | `string` | | text to parse |
+| `start` | `number` | `0` | (optional) position in the subject to start parsing |
+| `arg` | | `null` | (optional) parameter for capture and match-time action callbacks |
+| `initialRule` | `string` | `null` | (optional) initial rule |
+
+The `.parse` method returns a result map with the following fields:
 
 | Field | Type | Description |
 | --- | --- | --- |
 | `result.length` | `number` or `null` | length of the parsed portion of a subject |
-| `result.match` | `Match` or `null` | syntax tree |
-| `result.errors` | `list` of `Error`s | list of syntax and/or semantic errors |
+| `result.match` | `Match` or `null` | tree of matched fragments |
+| `result.errors` | `list` of `Error`s | list of encountered errors |
 | `result.captures` | `list` | list of captured values |
-| `result.capture` | | a value from `result.captures` if there's exactly one value, otherwise `null` |
+| `result.capture` | | if there's exactly one value in the `result.captures`, returns that value (otherwise `null`) |
 
-To check for success/failure, compare `result.length` with `null`.
+There's also a `._str` method to inspect the result object:
 
+```
+import "peg"
+g = new peg.Grammar
+g.init "A <- 'a'+  C: B  B <- A"
+result = g.parse("aaa")
 
-### Match Object
+print result._str  // ParseResult( ... )
+```
 
-Syntax trees built by patterns are represented as `Match` objects.
+To check for success or failure, compare `result.length` with `null`:
+
+```
+import "peg"
+g = new peg.Grammar
+g.init "A <- 'a'+  C: B  B <- A"
+
+result = g.parse("aaa")
+print result.length  // 3  (successful parsing)
+
+result = g.parse("bbb")
+print result.length == null  // 1  (parsing failed)
+```
+
+If the subject matches, the `result.match` field will contain the tree of matched fragments (which also has `._str`):
+
+```
+import "peg"
+g = new peg.Grammar
+g.init "A <- 'a'+  C: B  B <- A"
+result = g.parse("aaa")
+
+print result.match._str  // Match( ... ) ...
+```
+
+Each `Match` node has the following fields:
 
 | Field | Type | Description |
 | --- | --- | --- |
 | `match.start` | `number` | starting position in the subject |
 | `match.length` | `number` | length of a match |
 | `match.fragment` | `string` | matched text (`subject[start : start + length]`) |
-| `match.pattern` | `Pattern` | pattern instance that created a match |
+| `match.pattern` | `Pattern` | pattern object that produced the match |
 | `match.children` | `list` of `Match`es | submatches |
 
-There is one more optional field -- `match.capture` which normally is a _function capture_ callback of a corresponding pattern (if any).
-
-
-### Patterns
-
-It's possible to create a grammar by building it from pattern classes instead of describing it with the PEG syntax.
+Match is only returned for inspection/debugging. To extract useful info from parsed texts, use **captures**:
 
 ```
-// This is equivalent to
-// g = new peg.Grammar
-// g.init "Foo<-'foo' Bar<-Foo", "Bar"
-
 import "peg"
+g = new peg.Grammar
+g.init "A <- 'a'+{}  C: B  B <- A"
+result = g.parse("aaa")
+print result.captures  // ["aaa"]
+```
 
-foo = new peg.Literal
-foo.init "foo"
+Here we used an _anonymous capture_ suffix (`{}`, empty braces) after `'a'+`. Changing it to `'a'{}+` will capture each individual `'a'`:
 
-bar = new peg.RuleRef
-bar.init "Foo"
+```
+import "peg"
+g = new peg.Grammar
+g.init "A <- 'a' {} +  C: B  B <- A"
+result = g.parse("aaa")
+print result.captures  // ["a", "a", "a"]
+```
 
+The field `result.captures` is always a list. If you know that only one value should be captured, use `result.capture` (no -s):
+
+```
+import "peg"
+g = new peg.Grammar
+g.init "A <- 'a'+{}  C: B  B <- A"
+result = g.parse("aaa")
+print result.capture  // "aaa"
+```
+
+
+
+Another form of capture is a _function capture_. It's expressed with suffix `{name}` and there also should be the `name` callback registered with `grammar.capture(NAME, CALLBACK)`:
+
+```
+import "peg"
+g = new peg.Grammar
+g.init "A <- 'a' {} + {slashes}  C: B  B <- A"
+
+g.capture "slashes", function(_,subs,_)
+	return subs.join("/")
+end function
+
+result = g.parse("aaa")
+print result.capture  // "a/a/a"
+```
+
+In the example above we only use the second parameter to the callback (`subs`) which is the list of captures produced by subpatterns. The full callback's signature is as follows:
+
+| Parameter | Type | Description |
+| --- | --- | --- |
+| `match` | `Match` | matched portion of the subject |
+| `subcaptures` | `list` | list of values captured by the subpatterns |
+| `arg` | | optional third parameter to `.parse` |
+
+The return value of the callback becomes the sole capture (all subcaptures from `subs` are dropped). If it's desired to keep the subcaptures, modify `subs` in place **AND** return it:
+
+```
+import "peg"
+g = new peg.Grammar
+g.init "A <- 'a' {} + {slashes}  C: B  B <- A"
+
+g.capture "slashes", function(_,subs,_)
+	subs.push subs.join("/")
+	return subs
+end function
+
+result = g.parse("aaa")
+print result.captures  // ["a", "a", "a", "a/a/a"]
+```
+
+Another special case is when the callback returns an instance of the `peg.Error` class which will immediately stop the parsing and populate `result.errors` with that error.
+
+```
+import "peg"
+g = new peg.Grammar
+g.init "A <- 'a'+{crash}  C: B  B <- A"
+
+g.capture "crash", function(match,_,_)
+	error = new peg.Error
+	error.init "message - " + match.fragment
+	return error
+end function
+
+result = g.parse("aaa")
+print result.length == null  // 1  (failure)
+print result.errors[0]._str  // SemanticError(message - aaa)
+```
+
+Note, captures are never produced inside predicates `&` and `!`.
+
+While _capture_ callbacks are executed only after the whole grammar matched, the **match-time actions** (`<name>`) are invoked immediately when the corresponding pattern matches. The callbacks are registered with `grammar.matchTime(NAME, CALLBACK)`.
+
+```
+import "peg"
+g = new peg.Grammar
+g.init "A <- ('a'  'b' <upper>  'c') {}"
+
+g.matchTime "upper", function(match,_,_,_)
+	match.fragment = match.fragment.upper
+	return match
+end function
+
+result = g.parse("abc")
+print result.capture  // "aBc"
+```
+
+In the example above we modify the match object converting it to upper case. The full callback's signature is this:
+
+| Parameter | Type | Description |
+| --- | --- | --- |
+| `match` | `Match` or `null` | matched fragment (or `null` if the pattern failed) |
+| `subcaptures` | `function` that returns a `list` | list of subcaptures (only evaluated if gets invoked) |
+| `arg` | | optional argument to `.parse` |
+| `ctx` | `ParseConrext` | collection of data associated with current call to `.parse` |
+
+Unlike in function captures, the parameter `match` may be `null`, so check before manipulating.
+
+The return value determines whether the _match_ succeeds or fails: returning `null` means failure and returning a `Match` objects means success (it doesn't have to be the same match object as in the `match` parameter). Even if `null` is returned and thus the match fails, the parsing itself doesn't stop because failure of a pattern doesn't yet mean failure of the whole grammar.
+
+Still, if it's desired to signal an error, it can be pushed into `ctx.errors` or passed to `ctx.addSyntaxError(NAME, MESSAGE)`:
+
+```
+import "peg"
+g = new peg.Grammar
+g.init "A <- 'a'  'b' <whine>  'c'"
+
+g.matchTime "whine", function(_,_,_,ctx)
+	ctx.addSyntaxError "whine", "just complaining"
+	return null
+end function
+
+result = g.parse("abc")
+print result.errors[0]._str  // SyntaxError(just complaining; ... )
+```
+
+And the following black magic can be used to set capture values inside a match-time action:
+
+```
+import "peg"
+g = new peg.Grammar
+g.init "A <- 'a'  'b' <brackets>  'c'"
+
+g.matchTime "brackets", function(match,_,_,_)
+	match.capture = function(_,_,_)
+		return "[" + match.fragment + "]"
+	end function
+	return match
+end function
+
+result = g.parse("abc")
+print result.capture  // "[b]"
+```
+
+When no match-time callback is defined for `name`, the suffix `<name>` acts as a shortcut for "report syntax error on the pattern's failure".
+
+It's not necessary to use a PEG string to create a grammar. It's possible to build the grammar from library level classes:
+
+```
+import "peg"
 g = new peg.Grammar
 g.init
-g.addRule "Foo", foo
-g.addRule "Bar", bar
-g.setDefaultRule "Bar"
+g.addRule "A",
+          peg.makeRuleRef("B").withCaptureTag
+g.addRule "B",
+          peg.makeLiteral("foo")
+g.setDefaultRule "A"
 
-print g.parse("foo").length  // 3
+result = g.parse("foo")
+print result.capture  // "foo"
 ```
 
-Each pattern class has a corresponding `makeXXX` factory.
+In the example above, the call to `grammar.init` even without args is still mandatory.
 
-| Class new / init | Class factory | PEG |
+The full list of pattern classes:
+
+| "Classic" new / init | Factory | Equivalent in PEG |
 | --- | --- | --- |
 | <pre>p = new peg.Literal<br>p.init "string"</pre> | <pre>p = peg.makeLiteral("string")</pre> | `'string'` |
 | <pre>p = new peg.CharSet<br>p.init "!@#"</pre> | <pre>p = peg.makeCharSet("!@#")</pre> | `[!@#]` |
@@ -146,7 +368,9 @@ Each pattern class has a corresponding `makeXXX` factory.
 | <pre>p = new peg.Choice<br>p.init [q, r, ...]</pre> | <pre>p = peg.makeChoice([q, r, ...])</pre> | `q / r / ...` |
 | <pre>p = new peg.Grammar<br>p.init "A <- q B <- r"</pre> | <pre>p = peg.makeGrammar("A <- q B <- r")</pre> | `A <- q B <- r` |
 
-Adding capture "tags" (in place):
+The `Grammar` itself is also a pattern and so one grammar can be embedded inside another grammar.
+
+To add capture "tags" (in place) use these methods:
 
 | Method | PEG |
 | --- | --- |
@@ -154,101 +378,15 @@ Adding capture "tags" (in place):
 | <pre>p.withCaptureTag "name"</pre> | `p {name}` |
 | <pre>p.withMatchTimeTag "name"</pre> | `p <name>` |
 
-Example:
+To create a grammar where some rules only become known at the time of invokation of the `.parse` method, use **dynamic inclusions** (`Rule <- $`). To make it work, the `arg` parameter to `.parse` should be a map with a pair `RULENAME -> PATTERN`.
 
 ```
 import "peg"
-
-// a b+ {bees} !.
-
-p = peg.makeConcat([
-	peg.makeLiteral("a"),
-	peg.makeOneOrMore(
-		peg.makeLiteral("b")).withCaptureTag("bees"),
-	peg.makeNot(
-		peg.makeAnyChar),
-	])
-
-print p._str
+g = new peg.Grammar
+g.init "A: B {}  B <- $"
+result = g.parse("foo", 0, {"B": peg.patternOrLiteral("foo")})
+print result.capture  // "foo"
 ```
-
-## Captures
-
-### Simple capture
-
-The suffix `{}` creates a _simple capture_ which captures the text fragment and _appends_ it to the list of all captures.
-
-(See Examples section)
-
-
-### Function capture
-
-The suffix `{name}` creates a _function capture_ which invokes a callback function registered by `Grammar.capture name, @func`.
-
-The callback is invoked with the following arguments.
-
-| Argument | Type | Description |
-| --- | --- | --- |
-| `match` | `Match` | matched fragment or tree |
-| `subcaptures` | `list` | list of values captured by the subpatterns |
-| `arg` | | optional argument to `Grammar.parse` |
-
-The returned value becomes a new capture. Unlike the simple capture, the returned value replaces the **subcaptures**.
-
-To append _many_ captures, push them into `subcaptures` and return the list. Returning some other list of values will make it an individual capture. It will not flatten into the total list of captures.
-
-To append _no_ captures, remove everything from `subcaptures` and return the list. Returning `none` will append the actual `none` value to the total captures.
-
-To interrupt the parsing and finish it with an error, return a `peg.Error` object. This error will show up in `ParseResult.errors`.
-
-(See Examples section)
-
-
-## Match-time actions
-
-The suffix `<name>` creates a _match-time action_ which invokes a callback function registered by `Grammar.matchTime name, @func` at the matching stage of parsing.
-
-Unlike _function captures_, a match-time callback is invoked immediately after match (or failure to match), before the whole syntax tree is ready.
-
-Note, that even if the match is successful, the containing pattern may still fail later.
-
-The callback is invoked with the following arguments.
-
-| Argument | Type | Description |
-| --- | --- | --- |
-| `match` | `Match` or `null` | matched fragment or tree (or `null` if the pattern failed) |
-| `subcaptures` | `function` that returns a `list` | list of subcaptures (only evaluated if gets invoked) |
-| `arg` | | optional argument to `Grammar.parse` |
-| `ctx` | `ParseConrext` | collection of data associated with current call to `Grammar.parse` |
-
-The return value of the callback defines whether the match should be considered successful.
-
-- a `Match` object -- success
-- `null` -- failure
-
-It's impossible to interrupt the parsing by returning `null`, because it's a normal thing for a patterns to fail. However, errors still can be signalled by either pushing them to the `ctx.errors` list or by calling `ctx.addSyntaxError name, errMsg`.
-
-When no callback is defined for `name`, the suffix `<name>` acts as a shortcut for "report syntax error on the pattern's failure".
-
-(See Examples section)
-
-
-## Predicates and captures / actions
-
-Predicate patterns (`& p` and `! p`) never produce captures, so `& p {name}` or `! p {name}` will never invoke the callback `name`.
-
-However, changing `& p {name}` to `(& p) {name}` and `! p {name}` to `(! p) {name}` will invoke `name` and produce a capture. Since predicates consume no input, the `match.fragment` will always be an empty string.
-
-The _match-time actions_ get invoked even inside predicates.
-
-
-## Dynamic inclusions
-
-It's possible to create a grammar where some of the rules are unknown and are expected to be provided later inside an `arg` map during an invokation of the `parse` method.
-
-The (non-standard) syntax in `peg.ms` for such missing rules is ` ... Foo <- $ ... ` (a dollar character).
-
-(See Examples section)
 
 
 ## Examples
@@ -264,10 +402,9 @@ In this example we don't use capture syntax, so `result.captures` is empty.
 import "peg"
 
 equalAB = new peg.Grammar
-equalAB.init    " S <- 'a' B / 'b' A / '' " +
+equalAB.init    " S :  'a' B / 'b' A / '' " +
                 " A <- 'a' S / 'b' A A " +
-                " B <- 'b' S / 'a' B B ",
-                "S"
+                " B <- 'b' S / 'a' B B "
 
 result = equalAB.parse("abbabbbbbb")
 print result.length         // 4
@@ -288,8 +425,7 @@ import "peg"
 
 addNumbers = new peg.Grammar
 addNumbers.init "  number      <-  [0-9]+ {}  " +
-                "  addNumbers  <-  ( number  ( ','  number ) * ) {add}  ",
-                "addNumbers"
+                "  addNumbers  :   ( number  ( ','  number ) * ) {add}  "
 
 addNumbers.capture "add", function(match, subcaptures, arg)
 	add = 0
@@ -310,8 +446,7 @@ import "peg"
 
 stringUpper = new peg.Grammar
 stringUpper.init    "  name         <-  [a-z]+ {}  " +
-                    "  stringUpper  <-  ( name  '^' {} ? ) {upper}  ",
-                    "stringUpper"
+                    "  stringUpper  :   ( name  '^' {} ? ) {upper}  "
 
 stringUpper.capture "upper", function(match, subcaptures, arg)
 	if subcaptures.len == 1 then return subcaptures[0] else return subcaptures[0].upper
@@ -336,8 +471,7 @@ nameValueList.init  "  space  <-  [ \t\n\r] *  " +
                     "  name   <-  [a-zA-Z] + {}  space  " +
                     "  sep    <-  [,;]  space  " +
                     "  pair   <-  ( name  '='  space  name  sep ? )  " +
-                    "  list   <-  pair * {list}  ",
-                    "list"
+                    "  list   :   pair * {list}  "
 
 nameValueList.capture "list", function(match, subcaptures, arg)
 	vals = {}
@@ -364,8 +498,7 @@ import "peg"
 splitString = new peg.Grammar
 splitString.init    " sep     <-  $ " +
                     " elem    <-  ( ! sep  . ) * {} " +
-                    " result  <-  elem  ( sep  elem ) * ",
-                    "result"
+                    " result  :   elem  ( sep  elem ) * "
 
 split = function(s, sep)
 	sep = peg.patternOrLiteral(sep)
@@ -394,9 +527,8 @@ This example shows how to use recursive rules to search for a pattern anywhere i
 import "peg"
 
 searchForPatt = new peg.Grammar
-searchForPatt.init  "  pattern  <-  $                                " +
-                    "  search   <-  pattern {patt}  /  .  search  ",
-                    "search"
+searchForPatt.init  "  pattern  <-  $  " +
+                    "  search   :   pattern {patt}  /  .  search  "
 
 searchForPatt.capture "patt", function(match, subcaptures, arg)
 	return [match.start, match.start + match.length]
@@ -419,7 +551,7 @@ print "hello world!"[result[0]:result[1]]  // "world"
 import "peg"
 
 balanced = new peg.Grammar
-balanced.init "  bparen  <-  '('  ( ! [()]  .  /  bparen ) *  ')'  "
+balanced.init "  bparen  :  '('  ( ! [()]  .  /  bparen ) *  ')'  "
 
 isBalanced = function(s)
 	return balanced.parse(s).length == s.len
@@ -437,7 +569,7 @@ import "peg"
 
 gsubGrammar = new peg.Grammar
 gsubGrammar.init    "  pattern  <-  $  " +
-                    "  gsub     <-  ( ( pattern {sub}  /  . {} ) * )  "
+                    "  gsub     :   ( ( pattern {sub}  /  . {} ) * )  "
 
 gsubGrammar.capture "sub", function(match, subcaptures, arg)
 	return arg.repl
@@ -465,8 +597,7 @@ csvGrammar.init "  quot     <-  [""]  " +
                 "  qstr     <-  quot  ( ! quot  .  /  quot  quot ) * {qstr}  quot  " +
                 "  str      <-  ( ! ( ','  /  newline  /  quot )  . ) * {}  " +
                 "  field    <-  qstr  /  str  " +
-                "  record   <-  field  ( ','  field ) *  ( newline  /  !. )  ",
-                "record"
+                "  record   :   field  ( ','  field ) *  ( newline  /  !. )  "
 
 csvGrammar.capture "qstr", function(match, subcaptures, arg)
 	return match.fragment.replace("""" + """", """")
@@ -484,10 +615,9 @@ This example demonstrates the use of the _match-time actions_.
 import "peg"
 
 longStr = new peg.Grammar
-longStr.init    "  longstr  <-  open  ( ! close  . ) * {}  close  " +
+longStr.init    "  longstr  :   open  ( ! close  . ) * {}  close  " +
                 "  open     <-  '['  '=' * <startEq>  '['         " +
-                "  close    <-  ']'  '=' * <endEq>  ']'           ",
-                "longstr"
+                "  close    <-  ']'  '=' * <endEq>  ']'           "
 
 longStr.matchTime "startEq", function(match, subcaptures, arg, ctx)
 	if match != null then
@@ -524,10 +654,9 @@ arithExp.init   "  Space     <-  [ " + char(9) + char(10) + char(13) + "] *  " +
                 "  FactorOp  <-  [*/] {}  Space                              " +
                 "  Open      <-  '('  Space                                  " +
                 "  Close     <-  ')'  Space                                  " +
-                "  Exp       <-  Space ( Term  ( TermOp  Term ) * ) {eval}   " +
+                "  Exp       :   Space ( Term  ( TermOp  Term ) * ) {eval}   " +
                 "  Term      <-  ( Factor  ( FactorOp  Factor ) * ) {eval}   " +
-                "  Factor    <-  Number  /  Open  Exp  Close                 ",
-                "Exp"
+                "  Factor    <-  Number  /  Open  Exp  Close                 "
 
 arithExp.capture "eval", function(match, subcaptures, arg)
 	_val = function(x)
@@ -553,8 +682,4 @@ end function
 
 print arithExp.parse("3 + 5*9 / (1+1) - 12").capture  // 13.5
 ```
-
-
-
-
 

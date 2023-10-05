@@ -177,7 +177,7 @@ SyntaxError.init = function(ruleName, start, index, fragment, rest, tag, _messag
 	else
 		r = "`" + rest + "`"
 	end if
-	self.message = ("error: {m}" +
+	self.message = ("{m}" +
 	                "; attempted to match rule `{ruleName}`" +
 	                "; consumed {length} symbols starting at index {start}: `{fragment}`" +
 	                "; failed from index {index}: {r}").fill(locals)
@@ -1870,7 +1870,7 @@ _makePegGrammar = function
 	g.addCaptureAction "alternatives", @_alternativesSemantics
 	
 	
-	_definitionPeg = "Identifier  ( '<-'  /  [:] ) <noArrowOrColon> {}  Space  ( Pattern  /  '$' {}  Space ) <noRulePattern>"
+	_definitionPeg = "Identifier  ( '<-'  /  [:] ) <noArrowOrColon> {}  Space  ( Pattern  /  '$' {}  Space  ( & Definition  /  ! . ) <notNextDef> ) <noRulePattern>"
 	
 	g.addRule "Definition",
 		makeConcat([
@@ -1885,6 +1885,12 @@ _makePegGrammar = function
 				makeConcat([
 					makeLiteral("$").withCaptureTag,
 					makeRuleRef("Space"),
+					makeChoice([
+						makeAnd(
+							makeRuleRef("Definition")),
+						makeNot(
+							makeAnyChar),
+					]).withMatchTimeTag("notNextDef"),
 				]),
 			]).withMatchTimeTag("noRulePattern"),
 		])

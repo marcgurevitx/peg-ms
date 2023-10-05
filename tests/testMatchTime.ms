@@ -8,12 +8,12 @@ testSyntaxMatchTimeTag = function
 	e = peg.makeSyntaxError("RULE", 10, 15, "XXXXX", "YYYYY", "TAG", null)
 	qa.assertEqual e isa peg.SyntaxError, true
 	qa.assertEqual e.tag, "TAG"
-	qa.assertEqual e.message, "error: TAG; attempted to match rule `RULE`; consumed 5 symbols starting at index 10: `XXXXX`; failed from index 15: `YYYYY`"
+	qa.assertEqual e.message, "TAG; attempted to match rule `RULE`; consumed 5 symbols starting at index 10: `XXXXX`; failed from index 15: `YYYYY`"
 	
 	e = peg.makeSyntaxError("RULE", 10, 15, "XXXXX", "YYYYY", "TAG", "MESSAGE")
 	qa.assertEqual e isa peg.SyntaxError, true
 	qa.assertEqual e.tag, "TAG"
-	qa.assertEqual e.message, "error: MESSAGE; attempted to match rule `RULE`; consumed 5 symbols starting at index 10: `XXXXX`; failed from index 15: `YYYYY`"
+	qa.assertEqual e.message, "MESSAGE; attempted to match rule `RULE`; consumed 5 symbols starting at index 10: `XXXXX`; failed from index 15: `YYYYY`"
 end function
 
 
@@ -78,7 +78,7 @@ testMatchTimeCaptureAddSyntaxError = function
 	qa.assertEqual res.match, null
 	qa.assertEqual res.length, null
 	qa.assertEqual res.errors[0] isa peg.SyntaxError, true
-	qa.assertEqual res.errors[0].message.indexOf("foo bar") != 0, true
+	qa.assertEqual res.errors[0].message.indexOf("foo bar") != null, true
 	qa.assertEqual res.errors[0].tag, "xxx"
 	qa.assertEqual res.captures, []
 	
@@ -86,7 +86,7 @@ testMatchTimeCaptureAddSyntaxError = function
 	qa.assertEqual res.match, null
 	qa.assertEqual res.length, null
 	qa.assertEqual res.errors[0] isa peg.SyntaxError, true
-	qa.assertEqual res.errors[0].message.indexOf("foo bar") != 0, true
+	qa.assertEqual res.errors[0].message.indexOf("foo bar") != null, true
 	qa.assertEqual res.errors[0].tag, "xxx"
 	qa.assertEqual res.captures, []
 end function
