@@ -23,8 +23,18 @@ ensureImport "stringUtil"
 if version.hostName == "Command-Line (Linux)" then _NL = char(10) else _NL = char(13)
 
 
-maxFragment = 20
-maxRest = 10
+maxErrorFragment = 20
+maxErrorRest = 20
+
+escapes = {}
+escapes[char(9)] = "t"
+escapes[char(10)] = "n"
+escapes[char(13)] = "r"
+escapes["["] = "["
+escapes["]"] = "]"
+escapes["'"] = "'"
+escapes[""""] = """"
+escapes["\"] = "\"
 
 
 // abort: Prints error message and dies.
@@ -361,7 +371,7 @@ end function
 // If the pattern has subpatterns, this method is responsible to call their corresponding .matchSyntax method.
 Pattern._matchSyntaxLogic = function(ctx, arg=null)
 	
-	abort "This method should be overridden"
+	abort "Method ._matchSyntaxLogic should be overridden"
 	
 end function
 
@@ -385,9 +395,17 @@ end function
 // tags: Returns pattern's tags formatted as a string.
 Pattern.tags = function
 	rv = ""
+	if self.matchTimeTag != null then rv += " <" + self.matchTimeTag + ">"
 	if self.captureTag != null then rv += " {" + self.captureTag + "}"
-	if self.matchTimeTag != null then rv += " :" + self.matchTimeTag + ":"
 	return rv
+end function
+
+
+// generate: Returns a PEG string of the pattern.
+Pattern.generate = function
+	
+	abort "Method .generate should be overridden"
+	
 end function
 
 
@@ -411,6 +429,11 @@ AnyChar._matchSyntaxLogic = function(ctx, arg=null)
 	match = new Match
 	match.init ctx.index, 1, fragment, self
 	return match
+end function
+
+
+AnyChar.generate = function
+	return "." + self.tags
 end function
 
 
@@ -447,6 +470,23 @@ CharSet._matchSyntaxLogic = function(ctx, arg=null)
 	match = new Match
 	match.init ctx.index, 1, fragment, self
 	return match
+end function
+
+
+CharSet.generate = function
+	characters = []
+	hasMinus = false
+	for c in self.characters
+		if c == "-" then
+			hasMinus = true
+		else if escapes.hasIndex(c) then
+			characters.push "\" + escapes[c]
+		else
+			characters.push c
+		end if
+	end for
+	if hasMinus then characters.push "-"
+	return "[" + characters.join("") + "]" + self.tags
 end function
 
 
@@ -489,6 +529,19 @@ CharRange._matchSyntaxLogic = function(ctx, arg=null)
 end function
 
 
+CharRange.generate = function
+	characters = []
+	for c in [self.from, self.to]
+		if escapes.hasIndex(c) then
+			characters.push "\" + escapes[c]
+		else
+			characters.push c
+		end if
+	end for
+	return "[" + characters[0] + "-" + characters[1] + "]" + self.tags
+end function
+
+
 makeCharRange = function(from, to)
 	p = new CharRange
 	p.init from, to
@@ -522,6 +575,19 @@ Literal._matchSyntaxLogic = function(ctx, arg=null)
 	match = new Match
 	match.init ctx.index, self.string_.len, fragment, self
 	return match
+end function
+
+
+Literal.generate = function
+	characters = []
+	for c in self.string_
+		if escapes.hasIndex(c) then
+			characters.push "\" + escapes[c]
+		else
+			characters.push c
+		end if
+	end for
+	return "'" + characters.join("") + "'" + self.tags
 end function
 
 
@@ -563,6 +629,24 @@ And._matchSyntaxLogic = function(ctx, arg=null)
 end function
 
 
+And.generate = function
+	pattern = self.getOnlyChild
+	innerParens = ["", ""]
+	if pattern.tags == "" then
+		for cls in [Concat, Choice, Grammar]
+			if pattern isa cls then innerParens = ["( ", " )"]
+		end for
+	end if
+	tags = self.tags
+	if tags != "" then
+		outerParens = ["( ", " )"]
+	else
+		outerParens = ["", ""]
+	end if
+	return outerParens[0] + "& " + innerParens[0] + pattern.generate + innerParens[1] + outerParens[1] + tags
+end function
+
+
 makeAnd = function(pattern)
 	p = new And
 	p.init pattern
@@ -597,6 +681,24 @@ Not._matchSyntaxLogic = function(ctx, arg=null)
 	match = new Match
 	match.init ctx.index, 0, "", self
 	return match
+end function
+
+
+Not.generate = function
+	pattern = self.getOnlyChild
+	innerParens = ["", ""]
+	if pattern.tags == "" then
+		for cls in [Concat, Choice, Grammar]
+			if pattern isa cls then innerParens = ["( ", " )"]
+		end for
+	end if
+	tags = self.tags
+	if tags != "" then
+		outerParens = ["( ", " )"]
+	else
+		outerParens = ["", ""]
+	end if
+	return outerParens[0] + "! " + innerParens[0] + pattern.generate + innerParens[1] + outerParens[1] + tags
 end function
 
 
@@ -665,6 +767,27 @@ Choice._matchSyntaxLogic = function(ctx, arg=null)
 end function
 
 
+Choice.generate = function
+	children = []
+	for pattern in self.children
+		innerParens = ["", ""]
+		if pattern.tags == "" then
+			for cls in [Choice, Grammar]
+				if pattern isa cls then innerParens = ["( ", " )"]
+			end for
+		end if
+		children.push innerParens[0] + pattern.generate + innerParens[1]
+	end for
+	tags = self.tags
+	if tags != "" then
+		outerParens = ["( ", " )"]
+	else
+		outerParens = ["", ""]
+	end if
+	return outerParens[0] + children.join("  /  ") + outerParens[1] + tags
+end function
+
+
 makeChoice = function(patterns)
 	p = new Choice
 	p.init patterns
@@ -723,6 +846,27 @@ Concat._matchSyntaxLogic = function(ctx, arg=null)
 end function
 
 
+Concat.generate = function
+	children = []
+	for pattern in self.children
+		innerParens = ["", ""]
+		if pattern.tags == "" then
+			for cls in [Concat, Choice, Grammar]
+				if pattern isa cls then innerParens = ["( ", " )"]
+			end for
+		end if
+		children.push innerParens[0] + pattern.generate + innerParens[1]
+	end for
+	tags = self.tags
+	if tags != "" then
+		outerParens = ["( ", " )"]
+	else
+		outerParens = ["", ""]
+	end if
+	return outerParens[0] + children.join("  ") + outerParens[1] + tags
+end function
+
+
 makeConcat = function(patterns)
 	p = new Concat
 	p.init patterns
@@ -758,6 +902,18 @@ Optional._matchSyntaxLogic = function(ctx, arg=null)
 		match.addChild subm
 	end if
 	return match
+end function
+
+
+Optional.generate = function
+	pattern = self.getOnlyChild
+	innerParens = ["", ""]
+	if pattern.tags == "" then
+		for cls in [Concat, Choice, And, Not, Grammar]
+			if pattern isa cls then innerParens = ["( ", " )"]
+		end for
+	end if
+	return innerParens[0] + pattern.generate + innerParens[1] + " ?" + self.tags
 end function
 
 
@@ -805,6 +961,18 @@ ZeroOrMore._matchSyntaxLogic = function(ctx, arg=null)
 		match.addChild subm
 	end for
 	return match
+end function
+
+
+ZeroOrMore.generate = function
+	pattern = self.getOnlyChild
+	innerParens = ["", ""]
+	if pattern.tags == "" then
+		for cls in [Concat, Choice, And, Not, Grammar]
+			if pattern isa cls then innerParens = ["( ", " )"]
+		end for
+	end if
+	return innerParens[0] + pattern.generate + innerParens[1] + " *" + self.tags
 end function
 
 
@@ -858,6 +1026,18 @@ OneOrMore._matchSyntaxLogic = function(ctx, arg=null)
 end function
 
 
+OneOrMore.generate = function
+	pattern = self.getOnlyChild
+	innerParens = ["", ""]
+	if pattern.tags == "" then
+		for cls in [Concat, Choice, And, Not, Grammar]
+			if pattern isa cls then innerParens = ["( ", " )"]
+		end for
+	end if
+	return innerParens[0] + pattern.generate + innerParens[1] + " +" + self.tags
+end function
+
+
 makeOneOrMore = function(pattern)
 	p = new OneOrMore
 	p.init pattern
@@ -871,6 +1051,7 @@ ParseContext._name = "ParseContext"
 ParseContext.cachedSubcaptures = null
 ParseContext.grammar = null
 ParseContext.index = null
+ParseContext._initialRule = null
 ParseContext.insidePredicate = false
 ParseContext.ruleName = null
 ParseContext.ruleStart = null
@@ -878,9 +1059,10 @@ ParseContext.subject = null
 ParseContext.syntaxErrors = null
 
 
-ParseContext.init = function(subject, index)
+ParseContext.init = function(subject, index, initialRule=null)
 	self.subject = subject
 	self.index = index
+	self._initialRule = initialRule
 	self.cachedSubcaptures = []
 	self.syntaxErrors = []
 end function
@@ -889,8 +1071,8 @@ end function
 // addSyntaxError: Appends a syntax error to the list of errors.
 ParseContext.addSyntaxError = function(matchTimeTag, _message)
 	if self.insidePredicate then return
-	fragment = self.subject[self.ruleStart : self.index].ellideMiddle(maxFragment)
-	rest = self.subject[self.index : ].ellideEnd(maxRest)
+	fragment = self.subject[self.ruleStart : self.index].ellideMiddle(maxErrorFragment)
+	rest = self.subject[self.index : ].ellideEnd(maxErrorRest)
 	self.syntaxErrors.push makeSyntaxError(self.ruleName, self.ruleStart, self.index, fragment, rest, matchTimeTag, _message)
 end function
 
@@ -911,9 +1093,9 @@ ParseContext.getSubcaptures = function(match)
 end function
 
 
-makeParseContext = function(subject, index)
+makeParseContext = function(subject, index, initialRule=null)
 	c = new ParseContext
-	c.init subject, index
+	c.init subject, index, initialRule
 	return c
 end function
 
@@ -986,6 +1168,7 @@ Grammar.init = function(pegString=null, defaultRuleName=null)
 		rulesCapture = self._parsePegString(self.pegString)
 		self.rules = rulesCapture.rules
 		self.ruleOrder = rulesCapture.ruleOrder
+		self.defaultRule = rulesCapture.defaultRule
 	end if
 	self.captureActions = {}
 	self.matchTimeActions = {}
@@ -1001,9 +1184,9 @@ Grammar._parsePegString = function(pegString)
 	if res.length == null then
 		reasons = []
 		for err in res.errors
-			reasons.push err.message
+			reasons.push "  - " + err.message
 		end for
-		abort "Bad grammar; possible reasons: " + reasons
+		abort "Bad grammar; possible reasons: " + _NL + reasons.join(_NL)
 	end if
 	for kv in res.capture.rules
 		res.capture.rules[kv.key] = kv.value.normalize
@@ -1017,9 +1200,13 @@ Grammar._str = function
 	lines = [self.nodeToStr]
 	for ruleName in self.ruleOrder
 		lines.push " " + ruleName + "->"
-		for line in self.rules[ruleName]._str.split(_NL)
-			lines.push "  " + line
-		end for
+		if not self.rules.hasIndex(ruleName) then
+			lines.push "  $"
+		else
+			for line in self.rules[ruleName]._str.split(_NL)
+				lines.push "  " + line
+			end for
+		end if
 	end for
 	return lines.join(_NL)
 end function
@@ -1031,11 +1218,13 @@ end function
 
 
 // addRule: Adds a new rule to a grammar.
-Grammar.addRule = function(ruleName, pattern)
+Grammar.addRule = function(ruleName, pattern=null)
 	if not ruleName isa string then abort "Expected string, got `" + ruleName + "`"
-	Pattern._checkInstance pattern
 	if self.rules.hasIndex(ruleName) then abort "Rule already defined `" + ruleName + "`"
-	self.rules[ruleName] = pattern
+	if pattern != null then
+		Pattern._checkInstance pattern
+		self.rules[ruleName] = pattern
+	end if
 	self.ruleOrder.push ruleName
 end function
 
@@ -1051,15 +1240,21 @@ end function
 // getDefaultRule: Returns the name of the default rule (or the name of the only rule).
 Grammar.getDefaultRule = function
 	if self.defaultRule != null then return self.defaultRule
-	if self.rules.len == 1 then return self.ruleOrder[0]
+	if self.rules.len == 1 then return self.rules.indexes[0]
 	return null
 end function
 
 
 // _matchSyntaxLogic: Succeeds if grammar's default rule succeeds.
 Grammar._matchSyntaxLogic = function(ctx, arg=null)
-	ruleName = self.getDefaultRule
-	if ruleName == null then abort "Unable to match syntax, default rule not set"
+	if ctx._initialRule == null then
+		ruleName = self.getDefaultRule
+		if ruleName == null then abort "Unable to match, default rule not set"
+	else
+		if not self.rules.hasIndex(ctx._initialRule) then abort "Unable to use initial rule `" + ctx._initialRule + "`, no such rule"
+		ruleName = ctx._initialRule
+		ctx.remove "_initialRule"
+	end if
 	pattern = self.rules[ruleName]
 	subm = pattern.matchSyntax(ctx + {"grammar": self, "ruleName": ruleName, "ruleStart": ctx.index}, arg)
 	if subm == null then
@@ -1146,10 +1341,10 @@ end function
 
 
 // parse: Matches a string and a grammar and returns an object of ParseResult class.
-Grammar.parse = function(subject, start=null, arg=null)
+Grammar.parse = function(subject, start=null, arg=null, initialRule=null)
 	if start == null then start = 0
 	res = makeParseResult
-	ctx = makeParseContext(subject, start)
+	ctx = makeParseContext(subject, start, initialRule)
 	res.match = self.matchSyntax(ctx, arg)
 	res.errors = ctx.syntaxErrors
 	if res.match == null then
@@ -1165,6 +1360,47 @@ Grammar.parse = function(subject, start=null, arg=null)
 	res.length = res.match.length
 	res.captures = captures
 	return res
+end function
+
+
+Grammar.generate = function(delimiter="")
+	defs = []
+	maxNameLength = 0
+	for ruleName in self.ruleOrder
+		if ruleName.len > maxNameLength then maxNameLength = ruleName.len
+		def = {}
+		def.ruleName = ruleName
+		if not self.rules.hasIndex(ruleName) then
+			def.pattern = "$"
+			def.arrow = "<-"
+		else
+			pattern = self.rules[ruleName]
+			innerParens = ["", ""]
+			if pattern.tags == "" then
+				for cls in [Grammar]
+					if pattern isa cls then innerParens = ["(", ")"]
+				end for
+			end if
+			def.pattern = innerParens[0] + pattern.generate + innerParens[1]
+			if self.defaultRule == ruleName then
+				def.arrow = ": "
+			else
+				def.arrow = "<-"
+			end if
+		end if
+		defs.push def
+	end for
+	lines = []
+	for def in defs
+		lines.push "  " + def.ruleName.pad(maxNameLength) + "  " + def.arrow + "  " + def.pattern + "  "
+	end for
+	tags = self.tags
+	if tags != "" then
+		outerParens = ["(", ")"]
+	else
+		outerParens = ["", ""]
+	end if
+	return outerParens[0] + lines.join(delimiter) + outerParens[1] + tags
 end function
 
 
@@ -1206,6 +1442,11 @@ RuleRef._matchSyntaxLogic = function(ctx, arg=null)
 end function
 
 
+RuleRef.generate = function
+	return self.ruleName + self.tags
+end function
+
+
 makeRuleRef = function(ruleName)
 	p = new RuleRef
 	p.init ruleName
@@ -1234,7 +1475,7 @@ _makePegGrammar = function
 	g = makeGrammar
 	
 	
-	// Comment  <-  '#'  ( ! ( <char(10)>  /  <char(13)> )  . ) *  ( <char(10)>  /  <char(13)>  /  !. )
+	_commentPeg = "'#'  ( ! [\n\r]  . ) *  ( [\n\r]  /  ! . )"
 	
 	g.addRule "Comment",
 		makeConcat([
@@ -1252,8 +1493,10 @@ _makePegGrammar = function
 			]),
 		])
 	
+	g.getRulePattern("Comment")._DEBUG_PEG = _commentPeg
 	
-	// Space  <-  ( Comment  /  ( ' '  /  <char(9)>  /  <char(10)>  /  <char(13)> ) ) *
+	
+	_spacePeg = "( Comment  /  [ \t\n\r] ) *"
 	
 	g.addRule "Space",
 		makeZeroOrMore(
@@ -1262,8 +1505,10 @@ _makePegGrammar = function
 				makeCharSet(" " + char(9) + char(10) + char(13)),
 			]))
 	
+	g.getRulePattern("Space")._DEBUG_PEG = _spacePeg
 	
-	// Identifier  <-  ( [a-zA-Z_]  [a-zA-Z_0-9] * ) {}  Space
+	
+	_identifierPeg = "( ( [a-z]  /  [A-Z]  /  [_] )  ( [a-z]  /  [A-Z]  /  [0-9]  /  [_] ) * ) {}  Space"
 	
 	g.addRule "Identifier",
 		makeConcat([
@@ -1271,21 +1516,23 @@ _makePegGrammar = function
 				makeChoice([
 					makeCharRange("a", "z"),
 					makeCharRange("A", "Z"),
-					makeLiteral("_"),
+					makeCharSet("_"),
 				]),
 				makeZeroOrMore(
 					makeChoice([
 						makeCharRange("a", "z"),
 						makeCharRange("A", "Z"),
-						makeLiteral("_"),
 						makeCharRange("0", "9"),
+						makeCharSet("_"),
 					])),
 			]).withCaptureTag,
 			makeRuleRef("Space"),
 		])
 	
+	g.getRulePattern("Identifier")._DEBUG_PEG = _identifierPeg
 	
-	// Escape  <-  '\\'  ( [tnr\[\]\'\"\\]  /  'u'  [0-9A-Fa-f]+ ) {escape}
+	
+	_escapePeg = "'\\'  ( [tnr\[\]\'\""\\]  /  'u'  ( [0-9]  /  [A-F]  /  [a-f] ) + <fourHex> ) {escape}"
 	
 	g.addRule "Escape",
 		makeConcat([
@@ -1295,10 +1542,32 @@ _makePegGrammar = function
 				makeConcat([
 					makeLiteral("u"),
 					makeOneOrMore(
-						makeCharRange("0", "9")),
+						makeChoice([
+							makeCharRange("0", "9"),
+							makeCharRange("A", "F"),
+							makeCharRange("a", "f"),
+						])).withMatchTimeTag("fourHex"),
 				]),
 			]).withCaptureTag("escape"),
 		])
+	
+	g.getRulePattern("Escape")._DEBUG_PEG = _escapePeg
+	
+	_fourHexMT = function(match, subcaptures, arg, ctx)
+		if not match then
+			ctx.addSyntaxError("fourHex", "Missing hexadecimals after `\u`")
+			return null
+		end if
+		if match.fragment.len < 4 then
+			ctx.addSyntaxError("fourHex", "Expected four hexadecimals after `\u`, got only " + match.fragment.len + ": `" + match.fragment + "`")
+			return null
+		end if
+		match.length = 4
+		match.fragment = match.fragment[:4]
+		return match
+	end function
+	
+	g.addMatchTimeAction "fourHex", @_fourHexMT
 	
 	_escapeSemantics = function(match, subcaptures, arg)
 		if match.fragment[0] == "u" then
@@ -1317,7 +1586,7 @@ _makePegGrammar = function
 	g.addCaptureAction "escape", @_escapeSemantics
 	
 	
-	// CharClass  <-  '['  ( !']'  ( Escape  /  ( .  '-'  !']'  . ) {}  /  . {} ) ) + :noElems: {charClass}  ']' :noClosing:  Space
+	_charClassPeg = "'\['  ( ! '\]'  ( Escape  /  ( .  '-'  ! '\]'  . ) {}  /  . {} ) ) + <noElems> {charClass}  '\]' <noClosing>  Space"
 	
 	g.addRule "CharClass",
 		makeConcat([
@@ -1342,6 +1611,8 @@ _makePegGrammar = function
 			makeRuleRef("Space"),
 		])
 	
+	g.getRulePattern("CharClass")._DEBUG_PEG = _charClassPeg
+	
 	_charClassSemantics = function(match, subcaptures, arg)
 		elems = []
 		for cap in subcaptures
@@ -1359,7 +1630,7 @@ _makePegGrammar = function
 	g.addCaptureAction "charClass", @_charClassSemantics
 	
 	
-	// Literal  <-  ( [']  ( ![']  ( Escape  /  . {} ) ) * {literal}  ['] :noClosing:  /  ["]  ( !["]  ( Escape  /  . {} ) ) * {literal}  ["] :noClosing: )  Space
+	_literalPeg = "( '\''  ( ! '\''  ( Escape  /  . {} ) ) * {literal}  '\'' <noClosing>  /  '\""'  ( ! '\""'  ( Escape  /  . {} ) ) * {literal}  '\""' <noClosing> )  Space"
 	
 	g.addRule "Literal",
 		makeConcat([
@@ -1394,6 +1665,8 @@ _makePegGrammar = function
 			makeRuleRef("Space"),
 		])
 	
+	g.getRulePattern("Literal")._DEBUG_PEG = _literalPeg
+	
 	_literalSemantics = function(match, subcaptures, arg)
 		return makeLiteral(subcaptures.join(""))
 	end function
@@ -1401,13 +1674,15 @@ _makePegGrammar = function
 	g.addCaptureAction "literal", @_literalSemantics
 	
 	
-	// AnyChar  <-  '.' {anyChar}  Space
+	_anyCharPeg = "'.' {anyChar}  Space"
 	
 	g.addRule "AnyChar",
 		makeConcat([
 			makeLiteral(".").withCaptureTag("anyChar"),
 			makeRuleRef("Space"),
 		])
+	
+	g.getRulePattern("AnyChar")._DEBUG_PEG = _anyCharPeg
 	
 	_anyCharSemantics = function(match, subcaptures, arg)
 		return makeAnyChar()
@@ -1416,7 +1691,7 @@ _makePegGrammar = function
 	g.addCaptureAction "anyChar", @_anyCharSemantics
 	
 	
-	// Primary  <-  '('  Space  Pattern  ')'  Space  /  AnyChar  /  Literal  /  CharClass  /  Identifier {ruleRef}  !'<-'
+	_primaryPeg = "'('  Space  Pattern  ')'  Space  /  AnyChar  /  Literal  /  CharClass  /  Identifier {ruleRef}  ! ( '<-'  /  [:] )"
 	
 	g.addRule "Primary",
 		makeChoice([
@@ -1433,9 +1708,14 @@ _makePegGrammar = function
 			makeConcat([
 				makeRuleRef("Identifier").withCaptureTag("ruleRef"),
 				makeNot(
-					makeLiteral("<-")),
+					makeChoice([
+						makeLiteral("<-"),
+						makeCharSet(":"),
+					])),
 			]),
 		])
+	
+	g.getRulePattern("Primary")._DEBUG_PEG = _primaryPeg
 	
 	_ruleRefSemantics = function(match, subcaptures, arg)
 		ruleName = subcaptures[-1]
@@ -1446,27 +1726,29 @@ _makePegGrammar = function
 	g.addCaptureAction "ruleRef", @_ruleRefSemantics
 	
 	
-	// MatchTimeTag  <-  ':'  Space  Identifier ? {matchTimeTag}  ':' :noClosing:  Space
+	_matchTimeTagPeg = "'<'  Space  Identifier ? {matchTimeTag}  '>' <noClosing>  Space"
 	
 	g.addRule "MatchTimeTag",
 		makeConcat([
-			makeLiteral(":"),
+			makeLiteral("<"),
 			makeRuleRef("Space"),
 			makeOptional(
 				makeRuleRef("Identifier")).withCaptureTag("matchTimeTag"),
-			makeLiteral(":").withMatchTimeTag("noClosing"),
+			makeLiteral(">").withMatchTimeTag("noClosing"),
 			makeRuleRef("Space"),
 		])
 	
+	g.getRulePattern("MatchTimeTag")._DEBUG_PEG = _matchTimeTagPeg
+	
 	_matchTimeTagSemantics = function(match, subcaptures, arg)
 		if subcaptures.len == 0 then tag = "" else tag = subcaptures[-1]
-		return ":" + tag
+		return "<" + tag
 	end function
 	
 	g.addCaptureAction "matchTimeTag", @_matchTimeTagSemantics
 	
 	
-	// CaptureTag  <-  '{'  Space  Identifier ? {captureTag}  '}' :noClosing:  Space
+	_captureTagPeg = "'{'  Space  Identifier ? {captureTag}  '}' <noClosing>  Space"
 	
 	g.addRule "CaptureTag",
 		makeConcat([
@@ -1478,6 +1760,8 @@ _makePegGrammar = function
 			makeRuleRef("Space"),
 		])
 	
+	g.getRulePattern("CaptureTag")._DEBUG_PEG = _captureTagPeg
+	
 	_captureTagSemantics = function(match, subcaptures, arg)
 		if subcaptures.len == 0 then tag = "" else tag = subcaptures[-1]
 		return "{" + tag
@@ -1486,7 +1770,7 @@ _makePegGrammar = function
 	g.addCaptureAction "captureTag", @_captureTagSemantics
 	
 	
-	// WithSuffix  <-  ( Primary  ( [*+?] {}  Space  /  MatchTimeTag  /  CaptureTag ) * ) {withSuffix}
+	_withSuffixPeg = "( Primary  ( [*+?] {}  Space  /  MatchTimeTag  /  CaptureTag ) * ) {withSuffix}"
 	
 	g.addRule "WithSuffix",
 		makeConcat([
@@ -1502,6 +1786,8 @@ _makePegGrammar = function
 				])),
 		]).withCaptureTag("withSuffix")
 	
+	g.getRulePattern("WithSuffix")._DEBUG_PEG = _withSuffixPeg
+	
 	_withSuffixSemantics = function(match, subcaptures, arg)
 		pattern = subcaptures[0]
 		for suffix in subcaptures[1:]
@@ -1511,7 +1797,7 @@ _makePegGrammar = function
 				pattern = makeOneOrMore(pattern)
 			else if suffix[0] == "?" then
 				pattern = makeOptional(pattern)
-			else if suffix[0] == ":" then
+			else if suffix[0] == "<" then
 				pattern.matchTimeTag = suffix[1:]
 			else if suffix[0] == "{" then
 				pattern.captureTag = suffix[1:]
@@ -1525,7 +1811,7 @@ _makePegGrammar = function
 	g.addCaptureAction "withSuffix", @_withSuffixSemantics
 	
 	
-	// Alternative  <-  ( ( [!&] {}  Space  WithSuffix :noPattern: ) {prefixed}  /  WithSuffix ) + {concat}
+	_alternativePeg = "( ( [!&] {}  Space  WithSuffix <noPattern> ) {prefixed}  /  WithSuffix ) + {concat}"
 	
 	g.addRule "Alternative",
 		makeOneOrMore(
@@ -1537,6 +1823,8 @@ _makePegGrammar = function
 				]).withCaptureTag("prefixed"),
 				makeRuleRef("WithSuffix"),
 			])).withCaptureTag("concat")
+	
+	g.getRulePattern("Alternative")._DEBUG_PEG = _alternativePeg
 	
 	_prefixedSemantics = function(match, subcaptures, arg)
 		prefix = subcaptures[0]
@@ -1560,7 +1848,7 @@ _makePegGrammar = function
 	g.addCaptureAction "concat", @_concatSemantics
 	
 	
-	// Pattern  <-  ( Alternative  ( '/'  Space  Alternative :noAlternative: ) * ) {alternatives}
+	_patternPeg = "( Alternative  ( '/'  Space  Alternative <noAlternative> ) * ) {alternatives}"
 	
 	g.addRule "Pattern",
 		makeConcat([
@@ -1573,6 +1861,8 @@ _makePegGrammar = function
 				])),
 		]).withCaptureTag("alternatives")
 	
+	g.getRulePattern("Pattern")._DEBUG_PEG = _patternPeg
+	
 	_alternativesSemantics = function(match, subcaptures, arg)
 		return makeChoice(subcaptures)
 	end function
@@ -1580,12 +1870,15 @@ _makePegGrammar = function
 	g.addCaptureAction "alternatives", @_alternativesSemantics
 	
 	
-	// Definition  <-  Identifier  '<-' :noArrow:  Space  ( Pattern  /  '$' {}  Space ) :noRulePattern:
+	_definitionPeg = "Identifier  ( '<-'  /  [:] ) <noArrowOrColon> {}  Space  ( Pattern  /  '$' {}  Space ) <noRulePattern>"
 	
 	g.addRule "Definition",
 		makeConcat([
 			makeRuleRef("Identifier"),
-			makeLiteral("<-").withMatchTimeTag("noArrow"),
+			makeChoice([
+				makeLiteral("<-"),
+				makeCharSet(":"),
+			]).withMatchTimeTag("noArrowOrColon").withCaptureTag,
 			makeRuleRef("Space"),
 			makeChoice([
 				makeRuleRef("Pattern"),
@@ -1596,8 +1889,10 @@ _makePegGrammar = function
 			]).withMatchTimeTag("noRulePattern"),
 		])
 	
+	g.getRulePattern("Definition")._DEBUG_PEG = _definitionPeg
 	
-	// Grammar  <-  Space  Definition + {ruleDefs} :noRuleDefs:  !.
+	
+	_grammarPeg = "Space  Definition + <noRuleDefs> {ruleDefs}  ( ! . ) <noEos>"
 	
 	g.addRule "Grammar",
 		makeConcat([
@@ -1605,16 +1900,25 @@ _makePegGrammar = function
 			makeOneOrMore(
 				makeRuleRef("Definition")).withCaptureTag("ruleDefs").withMatchTimeTag("noRuleDefs"),
 			makeNot(
-				makeAnyChar),
+				makeAnyChar).withMatchTimeTag("noEos"),
 		])
+	
+	g.getRulePattern("Grammar")._DEBUG_PEG = _grammarPeg
 	
 	_ruleDefsSemantics = function(match, subcaptures, arg)
 		rules = {}
 		ruleOrder = []
-		for i in range(0, subcaptures.len - 1, 2)
+		defaultRule = null
+		for i in range(0, subcaptures.len - 1, 3)
 			ruleName = subcaptures[i]
-			rulePattern = subcaptures[i + 1]
+			ruleMarker = subcaptures[i + 1]
+			rulePattern = subcaptures[i + 2]
 			if rules.hasIndex(ruleName) then return makeSemanticError("Multiple definitions for rule `" + ruleName + "`")
+			if ruleMarker == ":" then
+				if defaultRule != null then return makeSemanticError("Multiple default rules: `" + defaultRule + "` and `" + ruleName + "`")
+				if rulePattern == "$" then return makeSemanticError("Inclusion rule can't be default: `" + ruleName + "`")
+				defaultRule = ruleName
+			end if
 			rules[ruleName] = rulePattern
 			ruleOrder.push ruleName
 		end for
@@ -1624,13 +1928,14 @@ _makePegGrammar = function
 		end for
 		if missingRules.len > 0 then return makeSemanticError("Rules used but not defined: " + missingRules)
 		for ruleName in rules.indexes
-			if rules[ruleName] == "$" then
-				rules.remove ruleName
-				ruleOrder.removeVal ruleName
-			end if
+			if rules[ruleName] == "$" then rules.remove ruleName
 		end for
-		if ruleOrder.len == 0 then return makeSemanticError("At least one non-inclusion rule should be defined")
-		return {"rules": rules, "ruleOrder": ruleOrder}
+		if rules.len == 0 then return makeSemanticError("At least one non-inclusion rule should be defined")
+		result = {}
+		result.rules = rules
+		result.ruleOrder = ruleOrder
+		result.defaultRule = defaultRule
+		return result
 	end function
 	
 	g.addCaptureAction "ruleDefs", @_ruleDefsSemantics

@@ -81,3 +81,9 @@ testGrammarInitWithDefaultRule = function
 	qa.assertEqual g.parse("foo").capture, "foo"
 end function
 
+
+testGrammarDefaultRuleSyntax = function
+	g = peg.makeGrammar("B <- C  A: B  C <- 'foo' {}")
+	qa.assertEqual g.parse("foo").capture, "foo"
+end function
+

@@ -497,19 +497,19 @@ testPegMatchTimeTag = function
 	qa.assertEqual res.errors, []
 	qa.assertEqual res.captures, []
 	
-	res = g.parse("::", null, arg)
-	qa.assertEqual res.match.nodeToStr, "Match(0, 2, ::, Grammar(MatchTimeTag))"
+	res = g.parse("<>", null, arg)
+	qa.assertEqual res.match.nodeToStr, "Match(0, 2, <>, Grammar(MatchTimeTag))"
 	qa.assertEqual res.length, 2
 	qa.assertEqual res.errors, []
-	qa.assertEqual res.captures, [":"]
+	qa.assertEqual res.captures, ["<"]
 	
-	res = g.parse(":foo:", null, arg)
-	qa.assertEqual res.match.nodeToStr, "Match(0, 5, :foo:, Grammar(MatchTimeTag))"
+	res = g.parse("<foo>", null, arg)
+	qa.assertEqual res.match.nodeToStr, "Match(0, 5, <foo>, Grammar(MatchTimeTag))"
 	qa.assertEqual res.length, 5
 	qa.assertEqual res.errors, []
-	qa.assertEqual res.captures, [":foo"]
+	qa.assertEqual res.captures, ["<foo"]
 	
-	res = g.parse(":foo", null, arg)
+	res = g.parse("<foo", null, arg)
 	qa.assertEqual res.match, null
 	qa.assertEqual res.length, null
 	qa.assertEqual res.errors[0] isa peg.SyntaxError, true
@@ -616,11 +616,11 @@ testPegWithSuffixColon = function
 	arg.ruleNames = {}
 	//
 	
-	res = g.parse("Foo :bar:", null, arg)
-	qa.assertEqual res.match.nodeToStr, "Match(0, 9, Foo :bar:, Grammar(WithSuffix))"
+	res = g.parse("Foo <bar>", null, arg)
+	qa.assertEqual res.match.nodeToStr, "Match(0, 9, Foo <bar>, Grammar(WithSuffix))"
 	qa.assertEqual res.length, 9
 	qa.assertEqual res.errors, []
-	qa.assertEqual res.captures[0]._str, "RuleRef(Foo) :bar:"
+	qa.assertEqual res.captures[0]._str, "RuleRef(Foo) <bar>"
 	qa.assertEqual res.captures[0].matchTimeTag, "bar"
 end function
 
@@ -938,7 +938,7 @@ testPegGrammarInclusion = function
 	
 	rules = res.captures[0].rules
 	ruleOrder = res.captures[0].ruleOrder
-	qa.assertEqual ruleOrder, ["A"]
+	qa.assertEqual ruleOrder, ["A", "B"]
 	qa.assertEqual rules.A._str, "Choice()"        + _NL +
 	                             " Concat()"       + _NL +
 	                             "  RuleRef(B)"
@@ -994,5 +994,88 @@ testPegGrammarInitialSpaces = function
 	qa.assertEqual rules.A._str,    "Choice()"      + _NL +
 	                                " Concat()"     + _NL +
 	                                "  AnyChar()"
+end function
+
+
+testPegGrammarInclusions = function
+	g = peg.pegGrammar
+	
+	//
+	arg = {}
+	arg.ruleNames = {}
+	//
+	
+	res = g.parse("A  <-  B  B  <-  C  C  <-  $", null, arg)
+	qa.assertEqual res.match.nodeToStr, "Match(0, 28, A  <-  B  B  <-  C  C  <-  $, Grammar(Grammar))"
+	qa.assertEqual res.length, 28
+	qa.assertEqual res.errors, []
+	
+	rules = res.captures[0].rules
+	ruleOrder = res.captures[0].ruleOrder
+	qa.assertEqual ruleOrder, ["A", "B", "C"]
+	qa.assertEqual rules.A._str, "Choice()"        + _NL +
+	                             " Concat()"       + _NL +
+	                             "  RuleRef(B)"
+	qa.assertEqual rules.B._str, "Choice()"        + _NL +
+	                             " Concat()"       + _NL +
+	                             "  RuleRef(C)"
+end function
+
+
+testPegGenerate = function
+	p = peg.pegGrammar.getRulePattern("Comment")
+	qa.assertEqual p.generate, p._DEBUG_PEG
+	
+	p = peg.pegGrammar.getRulePattern("Space")
+	qa.assertEqual p.generate, p._DEBUG_PEG
+	
+	p = peg.pegGrammar.getRulePattern("Identifier")
+	qa.assertEqual p.generate, p._DEBUG_PEG
+	
+	p = peg.pegGrammar.getRulePattern("Escape")
+	qa.assertEqual p.generate, p._DEBUG_PEG
+	
+	p = peg.pegGrammar.getRulePattern("CharClass")
+	qa.assertEqual p.generate, p._DEBUG_PEG
+	
+	p = peg.pegGrammar.getRulePattern("Literal")
+	qa.assertEqual p.generate, p._DEBUG_PEG
+	
+	p = peg.pegGrammar.getRulePattern("AnyChar")
+	qa.assertEqual p.generate, p._DEBUG_PEG
+	
+	p = peg.pegGrammar.getRulePattern("Primary")
+	qa.assertEqual p.generate, p._DEBUG_PEG
+	
+	p = peg.pegGrammar.getRulePattern("MatchTimeTag")
+	qa.assertEqual p.generate, p._DEBUG_PEG
+	
+	p = peg.pegGrammar.getRulePattern("CaptureTag")
+	qa.assertEqual p.generate, p._DEBUG_PEG
+	
+	p = peg.pegGrammar.getRulePattern("WithSuffix")
+	qa.assertEqual p.generate, p._DEBUG_PEG
+	
+	p = peg.pegGrammar.getRulePattern("Alternative")
+	qa.assertEqual p.generate, p._DEBUG_PEG
+	
+	p = peg.pegGrammar.getRulePattern("Pattern")
+	qa.assertEqual p.generate, p._DEBUG_PEG
+	
+	p = peg.pegGrammar.getRulePattern("Definition")
+	qa.assertEqual p.generate, p._DEBUG_PEG
+	
+	p = peg.pegGrammar.getRulePattern("Grammar")
+	qa.assertEqual p.generate, p._DEBUG_PEG
+end function
+
+
+testPegGrammarParseGenerate = function
+	s = peg.pegGrammar.generate(_NL)
+	
+	g = new peg.Grammar
+	g.init s
+	
+	qa.assertEqual g.generate(_NL), s
 end function
 

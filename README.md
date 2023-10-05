@@ -17,7 +17,7 @@ import "peg"
 listOfNumbers = new peg.Grammar
 listOfNumbers.init  "list   <- '[' space number (',' space number)* space ']' " +
                     "number <- ([+-]? [0-9]+) {tonumber} " +
-                    "space <- ' '* ",
+                    "space  <- ' '* ",
                     "list"
 
 listOfNumbers.capture "tonumber", function(match, subcaptures, arg)
@@ -67,7 +67,7 @@ Captures in `peg.ms` are expressed with (non standard) suffixes which have the s
 | --- | --- | --- |
 | `p {}` | simple (anonymous) capture | 4 |
 | `p {name}` | function capture | 4 |
-| `p :name:` | match-time action | 4 |
+| `p <name>` | match-time action | 4 |
 
 
 ## Classes
@@ -152,7 +152,7 @@ Adding capture "tags" (in place):
 | --- | --- |
 | <pre>p.withCaptureTag</pre> | `p {}` |
 | <pre>p.withCaptureTag "name"</pre> | `p {name}` |
-| <pre>p.withMatchTimeTag "name"</pre> | `p :name:` |
+| <pre>p.withMatchTimeTag "name"</pre> | `p <name>` |
 
 Example:
 
@@ -206,7 +206,7 @@ To interrupt the parsing and finish it with an error, return a `peg.Error` objec
 
 ## Match-time actions
 
-The suffix `:name:` creates a _match-time action_ which invokes a callback function registered by `Grammar.matchTime name, @func` at the matching stage of parsing.
+The suffix `<name>` creates a _match-time action_ which invokes a callback function registered by `Grammar.matchTime name, @func` at the matching stage of parsing.
 
 Unlike _function captures_, a match-time callback is invoked immediately after match (or failure to match), before the whole syntax tree is ready.
 
@@ -228,7 +228,7 @@ The return value of the callback defines whether the match should be considered 
 
 It's impossible to interrupt the parsing by returning `null`, because it's a normal thing for a patterns to fail. However, errors still can be signalled by either pushing them to the `ctx.errors` list or by calling `ctx.addSyntaxError name, errMsg`.
 
-When no callback is defined for `name`, the suffix `:name:` acts as a shortcut for "report syntax error on the pattern's failure".
+When no callback is defined for `name`, the suffix `<name>` acts as a shortcut for "report syntax error on the pattern's failure".
 
 (See Examples section)
 
@@ -309,8 +309,8 @@ print addNumbers.parse("10,30,43").capture  // 83
 import "peg"
 
 stringUpper = new peg.Grammar
-stringUpper.init    "  name  <-  [a-z]+ {}  " +
-                    "  stringUpper    <-  ( name  '^' {} ? ) {upper}  ",
+stringUpper.init    "  name         <-  [a-z]+ {}  " +
+                    "  stringUpper  <-  ( name  '^' {} ? ) {upper}  ",
                     "stringUpper"
 
 stringUpper.capture "upper", function(match, subcaptures, arg)
@@ -485,8 +485,8 @@ import "peg"
 
 longStr = new peg.Grammar
 longStr.init    "  longstr  <-  open  ( ! close  . ) * {}  close  " +
-                "  open     <-  '['  '=' * :startEq:  '['         " +
-                "  close    <-  ']'  '=' * :endEq:  ']'           ",
+                "  open     <-  '['  '=' * <startEq>  '['         " +
+                "  close    <-  ']'  '=' * <endEq>  ']'           ",
                 "longstr"
 
 longStr.matchTime "startEq", function(match, subcaptures, arg, ctx)
@@ -507,9 +507,9 @@ end function
 print longStr.parse("[==[foo]=]bar]==]", 0, {}).capture  // "foo]=]bar"
 ```
 
-First, we used the match-time callback `:startEq:` to record the sequence of initial `=` symbols into `arg` map.
+First, we used the match-time callback `<startEq>` to record the sequence of initial `=` symbols into `arg` map.
 
-Then we used `:endEq:` to compare the number of closing `=`s with what we've previously recorded. If they don't match we return `null` forcing the `parse` method to believe that the match failed and thus it needs to keep searching for the next closing `]=*]`.
+Then we used `<endEq>` to compare the number of closing `=`s with what we've previously recorded. If they don't match we return `null` forcing the `parse` method to believe that the match failed and thus it needs to keep searching for the next closing `]=*]`.
 
 
 ### Arithmetic expressions

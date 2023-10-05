@@ -200,8 +200,8 @@ end function
 
 testLpegExampleLuaLongStrings = function
 	g = peg.makeGrammar("  longstr  <-  open  ( ! close  . ) * {}  close  " +
-	                    "  open     <-  '['  '=' * :startEq:  '['         " +
-	                    "  close    <-  ']'  '=' * :endEq:  ']'           ")
+	                    "  open     <-  '['  '=' * <startEq>  '['         " +
+	                    "  close    <-  ']'  '=' * <endEq>  ']'           ")
 	g.setDefaultRule "longstr"
 	
 	g.addMatchTimeAction "startEq", function(match, subcaptures, arg, ctx)
@@ -284,8 +284,8 @@ testLpegExampleArithmeticExpressionsOnTheFly = function
 	                    "  FactorOp  <-  [*/] {}  Space                              " +
 	                    "  Open      <-  '('  Space                                  " +
 	                    "  Close     <-  ')'  Space                                  " +
-	                    "  Exp       <-  Space ( Term  ( TermOp  Term ) * ) :eval:   " +
-	                    "  Term      <-  ( Factor  ( FactorOp  Factor ) * ) :eval:   " +
+	                    "  Exp       <-  Space ( Term  ( TermOp  Term ) * ) <eval>   " +
+	                    "  Term      <-  ( Factor  ( FactorOp  Factor ) * ) <eval>   " +
 	                    "  Factor    <-  Number  /  Open  Exp  Close                 ")
 	g.setDefaultRule "Exp"
 	

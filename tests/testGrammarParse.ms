@@ -61,14 +61,14 @@ testGrammarParseSyntaxError = function
 	
 	res = g.parse("foo")
 	qa.assertEqual res.match._str,  "Match(0, 3, foo, Grammar(Foo))" + _NL +
-	                                " Match(0, 3, foo, Literal(foo) :xxx:)"
+	                                " Match(0, 3, foo, Literal(foo) <xxx>)"
 	qa.assertEqual res.length, 3
 	qa.assertEqual res.errors, []
 	qa.assertEqual res.captures, []
 	
 	res = g.parse("  foo", 2)
 	qa.assertEqual res.match._str,  "Match(2, 3, foo, Grammar(Foo))" + _NL +
-	                                " Match(2, 3, foo, Literal(foo) :xxx:)"
+	                                " Match(2, 3, foo, Literal(foo) <xxx>)"
 	qa.assertEqual res.length, 3
 	qa.assertEqual res.errors, []
 	qa.assertEqual res.captures, []
@@ -156,5 +156,35 @@ testGrammarParseSemanticError = function
 	qa.assertEqual res.errors[0] isa peg.SemanticError, true
 	qa.assertEqual res.errors[0].message, "/ foo /"
 	qa.assertEqual res.captures, []
+end function
+
+
+testGrammarParseInitialRule = function
+	g = new peg.Grammar
+	g.init "A: 'foo' {}  B <- 'bar' {}"
+	
+	res = g.parse("foo")
+	qa.assertEqual res.capture, "foo"
+	
+	res = g.parse("bar")
+	qa.assertEqual res.capture, null
+	
+	res = g.parse("bar", 0, null, "B")
+	qa.assertEqual res.capture, "bar"
+end function
+
+
+testGrammarParseInitialRuleDoesNotPropagate = function
+	g = new peg.Grammar
+	g.init "A: 'foo' {}  B <- 'bar' {}"
+	
+	g2 = new peg.Grammar
+	g2.init "A: 'hello' {}  B <- _B  _B <- $"
+	
+	res = g2.parse("hello")
+	qa.assertEqual res.capture, "hello"
+	
+	res = g2.parse("foo", 0, {"_B": g}, "B")
+	qa.assertEqual res.capture, "foo"
 end function
 

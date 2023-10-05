@@ -56,25 +56,25 @@ testOptimizeConcatOfOnePatternToPattern = function
 	                                            " Literal(foo) {xxx}"
 	
 	g = new peg.Grammar
-	g.init "A <- ('foo' :xxx:)"
-	qa.assertEqual g.getRulePattern("A")._str,  "Literal(foo) :xxx:"
+	g.init "A <- ('foo' <xxx>)"
+	qa.assertEqual g.getRulePattern("A")._str,  "Literal(foo) <xxx>"
 	
 	g = new peg.Grammar
-	g.init "A <- ('foo') :yyy:"
-	qa.assertEqual g.getRulePattern("A")._str,  "Literal(foo) :yyy:"
+	g.init "A <- ('foo') <yyy>"
+	qa.assertEqual g.getRulePattern("A")._str,  "Literal(foo) <yyy>"
 	
 	g = new peg.Grammar
-	g.init "A <- ('foo' :xxx:) :yyy:"
-	qa.assertEqual g.getRulePattern("A")._str,  "Choice() :yyy:"    + _NL +
-	                                            " Literal(foo) :xxx:"
+	g.init "A <- ('foo' <xxx>) <yyy>"
+	qa.assertEqual g.getRulePattern("A")._str,  "Choice() <yyy>"    + _NL +
+	                                            " Literal(foo) <xxx>"
 	
 	g = new peg.Grammar
-	g.init "A <- ('foo' {xxx}) :yyy:"
-	qa.assertEqual g.getRulePattern("A")._str,  "Literal(foo) {xxx} :yyy:"
+	g.init "A <- ('foo' {xxx}) <yyy>"
+	qa.assertEqual g.getRulePattern("A")._str,  "Literal(foo) <yyy> {xxx}"
 	
 	g = new peg.Grammar
-	g.init "A <- ('foo' :xxx:) {yyy}"
-	qa.assertEqual g.getRulePattern("A")._str,  "Literal(foo) {yyy} :xxx:"
+	g.init "A <- ('foo' <xxx>) {yyy}"
+	qa.assertEqual g.getRulePattern("A")._str,  "Literal(foo) <xxx> {yyy}"
 end function
 
 
@@ -102,13 +102,13 @@ testOptimizeChoiceToCharSet = function
 	                                            " CharSet(bc)"
 	
 	g = new peg.Grammar
-	g.init "A<- 'a' :xxx:"
-	qa.assertEqual g.getRulePattern("A")._str,  "Literal(a) :xxx:"
+	g.init "A<- 'a' <xxx>"
+	qa.assertEqual g.getRulePattern("A")._str,  "Literal(a) <xxx>"
 	
 	g = new peg.Grammar
-	g.init "A<- 'a' :xxx: / 'b' / 'c'"
+	g.init "A<- 'a' <xxx> / 'b' / 'c'"
 	qa.assertEqual g.getRulePattern("A")._str,  "Choice()"          + _NL +
-	                                            " Literal(a) :xxx:" + _NL +
+	                                            " Literal(a) <xxx>" + _NL +
 	                                            " CharSet(bc)"
 end function
 

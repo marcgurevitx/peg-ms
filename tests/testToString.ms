@@ -210,6 +210,14 @@ testGrammarToString = function
 	qa.assertEqual g._str,  "Grammar(Foo)"    + _NL +
 	                        " Foo->"          + _NL +
 	                        "  Literal(foo)"
+	
+	g.addRule "Bar", null
+	
+	qa.assertEqual g._str,  "Grammar(Foo)"    + _NL +
+	                        " Foo->"          + _NL +
+	                        "  Literal(foo)"  + _NL +
+	                        " Bar->"          + _NL +
+	                        "  $"
 end function
 
 

@@ -18,7 +18,7 @@ end function
 
 
 testMatchTimeCaptureNull = function
-	g = peg.makeGrammar(" A <- 'foo' :xxx: ")
+	g = peg.makeGrammar(" A <- 'foo' <xxx> ")
 	
 	g.addMatchTimeAction "xxx", function(match, captures, arg, _ctx)
 		return null
@@ -39,7 +39,7 @@ end function
 
 
 testMatchTimeCaptureFakeMatch = function
-	g = peg.makeGrammar(" A <- 'foo' :xxx: ")
+	g = peg.makeGrammar(" A <- 'foo' <xxx> ")
 	
 	peg = outer.peg
 	_f = function(match, captures, arg, _ctx)
@@ -65,7 +65,7 @@ end function
 
 
 testMatchTimeCaptureAddSyntaxError = function
-	g = peg.makeGrammar(" A <- 'foo' :xxx: ")
+	g = peg.makeGrammar(" A <- 'foo' <xxx> ")
 	
 	_f = function(match, captures, arg, _ctx)
 		_ctx.addSyntaxError "xxx", "foo bar"
@@ -93,7 +93,7 @@ end function
 
 
 testMatchTimeCaptureSubcaptures = function
-	g = peg.makeGrammar(" A <- ( 'foo' {}  'bar' {} ) :xxx: ")
+	g = peg.makeGrammar(" A <- ( 'foo' {}  'bar' {} ) <xxx> ")
 	
 	sss = null
 	_f = function(match, captures, arg, _ctx)
@@ -120,7 +120,7 @@ end function
 
 
 testMatchTimeCaptureSubcapturesAreCached = function
-	g = peg.makeGrammar(" A <- ( 'foo' {fff}  'bar' {} ) :xxx: ")
+	g = peg.makeGrammar(" A <- ( 'foo' {fff}  'bar' {} ) <xxx> ")
 	
 	n = 0
 	_fff = function(match, captures, arg)
@@ -149,7 +149,7 @@ end function
 
 
 testMatchTimeSemanticError = function
-	g = peg.makeGrammar(" A <- ( 'foo' {ERR} ) :xxx: ")
+	g = peg.makeGrammar(" A <- ( 'foo' {ERR} ) <xxx> ")
 	
 	peg = outer.peg
 	_ERR = function(match, captures, arg)
@@ -179,7 +179,7 @@ end function
 
 testMatchTimeShortcut = function
 	g = new peg.Grammar
-	g.init "A<-'foo':xxx:"
+	g.init "A<-'foo'<xxx>"
 	
 	g.matchTime "xxx", function(match, subcaptures, arg, ctx)
 		match.capture = function(_,_,_)
