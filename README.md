@@ -23,9 +23,9 @@ listOfNumbers.capture "tonumber", function(match, subcaptures, arg)
 	return match.fragment.val
 end function
 
-print listOfNumbers.parse("[]").captures            // []
-print listOfNumbers.parse("[11,22,33]").captures    // [11, 22, 33]
-print listOfNumbers.parse("[ 44, 55 ]").captures    // [44, 55]
+print listOfNumbers.parse("[]").captures.list            // []
+print listOfNumbers.parse("[11,22,33]").captures.list    // [11, 22, 33]
+print listOfNumbers.parse("[ 44, 55 ]").captures.list    // [44, 55]
 ```
 
 
@@ -127,15 +127,16 @@ The `.parse` method returns a result map with the following fields:
 | `result.length` | `number` or `null` | length of the parsed portion of a subject |
 | `result.match` | `Match` or `null` | tree of matched fragments |
 | `result.errors` | `list` of `Error`s | list of encountered errors |
-| `result.captures` | `list` | list of captured values |
-| `result.capture` | | if there's exactly one value in the `result.captures`, returns that value (otherwise `null`) |
+| `result.captures.list` | `list` | list of values captured by `{}` and `{name}` |
+| `result.captures.map` | `map` | map of values captured by `{key:}` |
+| `result.capture` | | if there's exactly one value in the `result.captures.list`, returns that value (otherwise `null`) |
 
 There's also a `._str` method to inspect the result object:
 
 ```
 import "peg"
 g = new peg.Grammar
-g.init "A <- 'a'+  C: B  B <- A"
+g.init "A <- 'a'+"
 result = g.parse("aaa")
 
 print result._str  // ParseResult( ... )
@@ -146,7 +147,7 @@ To check for success or failure, compare `result.length` with `null`:
 ```
 import "peg"
 g = new peg.Grammar
-g.init "A <- 'a'+  C: B  B <- A"
+g.init "A <- 'a'+"
 
 result = g.parse("aaa")
 print result.length  // 3  (successful parsing)
@@ -160,7 +161,7 @@ If the subject matches, the `result.match` field will contain the tree of matche
 ```
 import "peg"
 g = new peg.Grammar
-g.init "A <- 'a'+  C: B  B <- A"
+g.init "A <- 'a'+"
 result = g.parse("aaa")
 
 print result.match._str  // Match( ... ) ...
@@ -181,9 +182,9 @@ Match is only returned for inspection/debugging. To extract useful info from par
 ```
 import "peg"
 g = new peg.Grammar
-g.init "A <- 'a'+{}  C: B  B <- A"
+g.init "A <- 'a'+{} "
 result = g.parse("aaa")
-print result.captures  // ["aaa"]
+print result.captures.list  // ["aaa"]
 ```
 
 Here we used an _anonymous capture_ suffix (`{}`, empty braces) after `'a'+`. Changing it to `'a'{}+` will capture each individual `'a'`:
@@ -191,68 +192,77 @@ Here we used an _anonymous capture_ suffix (`{}`, empty braces) after `'a'+`. Ch
 ```
 import "peg"
 g = new peg.Grammar
-g.init "A <- 'a' {} +  C: B  B <- A"
+g.init "A <- 'a' {} + "
 result = g.parse("aaa")
-print result.captures  // ["a", "a", "a"]
+print result.captures.list  // ["a", "a", "a"]
 ```
 
-The field `result.captures` is always a list. If you know that only one value should be captured, use `result.capture` (no -s):
+The field `result.captures.list` is always a list. If you know that only one value should be captured, use `result.capture` (no -s):
 
 ```
 import "peg"
 g = new peg.Grammar
-g.init "A <- 'a'+{}  C: B  B <- A"
+g.init "A <- 'a'+{}"
 result = g.parse("aaa")
 print result.capture  // "aaa"
 ```
 
-
-
-Another form of capture is a _function capture_. It's expressed with suffix `{name}` and there also should be the `name` callback registered with `grammar.capture(NAME, CALLBACK)`:
+Another form of capture is a _key capture_ suffix (`{key:}`) which puts captured values into `result.captures.map`:
 
 ```
 import "peg"
 g = new peg.Grammar
-g.init "A <- 'a' {} + {slashes}  C: B  B <- A"
+g.init "A <- [0-9]+{int:} '.' [0-9]+{fract:}"
+result = g.parse("3.14")
+print result.captures.map.int  // 3
+print result.captures.map.fract  // 14
+```
+
+And at last, a _function capture_ suffix (`{name}`). It invokes a callback `name` registered with `grammar.capture(NAME, CALLBACK)`:
+
+```
+import "peg"
+g = new peg.Grammar
+g.init "A <- 'a' {} + {slashes}"
 
 g.capture "slashes", function(_,subs,_)
-	return subs.join("/")
+	return subs.list.join("/")
 end function
 
 result = g.parse("aaa")
 print result.capture  // "a/a/a"
 ```
 
-In the example above we only use the second parameter to the callback (`subs`) which is the list of captures produced by subpatterns. The full callback's signature is as follows:
+In the example above we only use the second parameter to the callback (`subs`). Similar to `ParseResult.captures` it has fields `.list` and `.maps` that contain values produced by subpatterns. The full callback's signature is as follows:
 
 | Parameter | Type | Description |
 | --- | --- | --- |
 | `match` | `Match` | matched portion of the subject |
-| `subcaptures` | `list` | list of values captured by the subpatterns |
+| `subcaptures` | `{"list":..., "map":...}` | values captured by the subpatterns |
 | `arg` | | optional third parameter to `.parse` |
 
-The return value of the callback becomes the sole capture (all subcaptures from `subs` are dropped). If it's desired to keep the subcaptures, modify `subs` in place **AND** return it:
+The return value of the callback becomes the sole capture inside `captures.list` (all other subcaptures from `subs` get dropped). If it's desired to keep the subcaptures, modify `subs` in place **AND** return it:
 
 ```
 import "peg"
 g = new peg.Grammar
-g.init "A <- 'a' {} + {slashes}  C: B  B <- A"
+g.init "A <- 'a' {} + {slashes}"
 
 g.capture "slashes", function(_,subs,_)
-	subs.push subs.join("/")
+	subs.list.push subs.list.join("/")
 	return subs
 end function
 
 result = g.parse("aaa")
-print result.captures  // ["a", "a", "a", "a/a/a"]
+print result.captures.list  // ["a", "a", "a", "a/a/a"]
 ```
 
-Another special case is when the callback returns an instance of the `peg.Error` class which will immediately stop the parsing and populate `result.errors` with that error.
+Another special case is when the callback returns an instance of the `peg.Error` class which will immediately stop the parsing and populate `result.errors` with the error.
 
 ```
 import "peg"
 g = new peg.Grammar
-g.init "A <- 'a'+{crash}  C: B  B <- A"
+g.init "A <- 'a'+{crash}"
 
 g.capture "crash", function(match,_,_)
 	error = new peg.Error
@@ -288,9 +298,9 @@ In the example above we modify the match object converting it to upper case. The
 | Parameter | Type | Description |
 | --- | --- | --- |
 | `match` | `Match` or `null` | matched fragment (or `null` if the pattern failed) |
-| `subcaptures` | `function` that returns a `list` | list of subcaptures (only evaluated if gets invoked) |
+| `subcaptures` | `function` that returns `{"list":..., "map":...}` object | captures from subpatterns (only evaluated if gets invoked) |
 | `arg` | | optional argument to `.parse` |
-| `ctx` | `ParseConrext` | collection of data associated with current call to `.parse` |
+| `ctx` | `ParseContext` | collection of data associated with current call to `.parse` |
 
 Unlike in function captures, the parameter `match` may be `null`, so check before manipulating.
 
@@ -410,7 +420,8 @@ result = equalAB.parse("abbabbbbbb")
 print result.length         // 4
 print result.match.fragment // "abba"
 print result.errors         // []
-print result.captures       // []
+print result.captures.list  // []
+print result.captures.map   // {}
 ```
 
 We know that the parse was successful because `result.length` is not `null`.
@@ -429,7 +440,7 @@ addNumbers.init "  number      <-  [0-9]+ {}  " +
 
 addNumbers.capture "add", function(match, subcaptures, arg)
 	add = 0
-	for s in subcaptures
+	for s in subcaptures.list
 		add += s.val
 	end for
 	return add
@@ -441,24 +452,28 @@ print addNumbers.parse("10,30,43").capture  // 83
 
 ### String upper
 
+This example illustrates the use of `{key:}` captures:
+
 ```
 import "peg"
 
 stringUpper = new peg.Grammar
-stringUpper.init    "  name         <-  [a-z]+ {}  " +
-                    "  stringUpper  :   ( name  '^' {} ? ) {upper}  "
+stringUpper.init    "  name         <-  [a-z]+ {str:}  " +
+                    "  stringUpper  :   ( name  '^' {up:} ? ) {upper}  "
 
 stringUpper.capture "upper", function(match, subcaptures, arg)
-	if subcaptures.len == 1 then return subcaptures[0] else return subcaptures[0].upper
+	s = subcaptures.map.str
+	if subcaptures.map.hasIndex("up") then s = s.upper
+	return s
 end function
 
 print stringUpper.parse("foo").capture  // "foo"
 print stringUpper.parse("foo^").capture  // "FOO"
 ```
 
-Here the construction `'^' {} ?` only produces a capture if optional `^` symbol is matched, which allows the `{upper}` callback to make its desision based on the number of subcaptures.
+Here the construction `'^' {up:} ?` only produces a capture if optional `^` symbol is matched, so the `{upper}` callback checks `subcaptures.map.hasIndex("up")` to make its desision.
 
-Note that a different sequence `'^' ? {}` whould capture an empty string if the `^` symbol was missing.
+Note that a different sequence `'^' ? {up:}` whould always capture an empty string if the `^` symbol was missing.
 
 
 ### Name-value lists
@@ -475,8 +490,8 @@ nameValueList.init  "  space  <-  [ \t\n\r] *  " +
 
 nameValueList.capture "list", function(match, subcaptures, arg)
 	vals = {}
-	for i in range(0, subcaptures.len - 1, 2)
-		vals[subcaptures[i]] = subcaptures[i + 1]
+	for i in range(0, subcaptures.list.len - 1, 2)
+		vals[subcaptures.list[i]] = subcaptures.list[i + 1]
 	end for
 	return vals
 end function
@@ -490,7 +505,7 @@ print vals.next  // "pi"
 
 ### Splitting a string
 
-In this example we use a dynamic inclusion `sep <- $` the pattern of which becomes known only in the call to `split`.
+In this example we use a dynamic inclusion `sep <- $` the pattern of which becomes known only in the call to the `split` function.
 
 ```
 import "peg"
@@ -502,7 +517,7 @@ splitString.init    " sep     <-  $ " +
 
 split = function(s, sep)
 	sep = peg.patternOrLiteral(sep)
-	return splitString.parse(s, 0, {"sep": sep}).captures
+	return splitString.parse(s, 0, {"sep": sep}).captures.list
 end function
 
 print split("a b c", " ")  // ["a", "b", "c"]
@@ -579,7 +594,7 @@ gsub = function(s, patt, repl)
 	arg = {}
 	arg.pattern = peg.patternOrLiteral(patt)
 	arg.repl = repl
-	return gsubGrammar.parse(s, 0, arg).captures.join("")
+	return gsubGrammar.parse(s, 0, arg).captures.list.join("")
 end function
 
 print gsub("hello foo! goodbye foo!", "foo", "world")  // "hello world! goodbye world!"
@@ -603,7 +618,7 @@ csvGrammar.capture "qstr", function(match, subcaptures, arg)
 	return match.fragment.replace("""" + """", """")
 end function
 
-print csvGrammar.parse("foo,""bar"",baz").captures  // ["foo", "bar", "baz"]
+print csvGrammar.parse("foo,""bar"",baz").captures.list  // ["foo", "bar", "baz"]
 ```
 
 
@@ -662,10 +677,10 @@ arithExp.capture "eval", function(match, subcaptures, arg)
 	_val = function(x)
 		if x isa string then return x.val else return x
 	end function
-	acc = _val(subcaptures[0])
-	for i in range(1, subcaptures.len - 1, 2)
-		op = subcaptures[i]
-		x = _val(subcaptures[i + 1])
+	acc = _val(subcaptures.list[0])
+	for i in range(1, subcaptures.list.len - 1, 2)
+		op = subcaptures.list[i]
+		x = _val(subcaptures.list[i + 1])
 		if op == "+" then
 			acc += x
 		else if op == "-" then
@@ -678,7 +693,6 @@ arithExp.capture "eval", function(match, subcaptures, arg)
 	end for
 	return acc
 end function
-
 
 print arithExp.parse("3 + 5*9 / (1+1) - 12").capture  // 13.5
 ```

@@ -75,18 +75,18 @@ end if
 // Base class for Pattern and Match.
 Tree = {}
 Tree._name = "Tree"
-Tree._isInstance = false
+Tree._inited = false
 Tree.children = null
 
 
 Tree.init = function
-	self._isInstance = true
+	self._inited = true
 	self.children = []
 end function
 
 
 Tree._str = function
-	if not self._isInstance then return self._name + " class"
+	if not self._inited then return self._name + " class"
 	lines = [self.nodeToStr]
 	for node in self.children
 		for line in node._str.split(_NL)
@@ -100,7 +100,7 @@ end function
 Tree.nodeToStr = function
 	contents = []
 	for kv in self
-		if ["__isa", "_isInstance", "children"].indexOf(@kv.key) != null then continue
+		if ["__isa", "_inited", "children"].indexOf(@kv.key) != null then continue
 		contents.push @kv.key + ": " + @kv.value
 	end for
 	return self._name + "(" + contents.join(", ") + ")"
@@ -110,7 +110,7 @@ end function
 // checkInstance: Aborts if x is not instance of Tree class/subclass.
 Tree._checkInstance = function(x)
 	if not x isa Tree then abort "Bad tree node, expected Tree, got `" + x + "`."
-	if not x._isInstance then abort "Bad tree node, expected instance, got `" + x._str + "`."
+	if not x._inited then abort "Bad tree node, expected instance, got `" + x._str + "`."
 end function
 
 
@@ -411,10 +411,10 @@ Pattern.tags = function
 end function
 
 
-// generate: Returns a PEG string of the pattern.
-Pattern.generate = function
+// generatePegString: Returns a PEG string of the pattern.
+Pattern.generatePegString = function
 	
-	abort "Method .generate should be overridden"
+	abort "Method .generatePegString should be overridden"
 	
 end function
 
@@ -442,7 +442,7 @@ AnyChar._matchSyntaxLogic = function(ctx, arg=null)
 end function
 
 
-AnyChar.generate = function
+AnyChar.generatePegString = function
 	return "." + self.tags
 end function
 
@@ -483,7 +483,7 @@ CharSet._matchSyntaxLogic = function(ctx, arg=null)
 end function
 
 
-CharSet.generate = function
+CharSet.generatePegString = function
 	characters = []
 	hasMinus = false
 	for c in self.characters
@@ -539,7 +539,7 @@ CharRange._matchSyntaxLogic = function(ctx, arg=null)
 end function
 
 
-CharRange.generate = function
+CharRange.generatePegString = function
 	characters = []
 	for c in [self.from, self.to]
 		if escapes.hasIndex(c) then
@@ -588,7 +588,7 @@ Literal._matchSyntaxLogic = function(ctx, arg=null)
 end function
 
 
-Literal.generate = function
+Literal.generatePegString = function
 	characters = []
 	for c in self.string_
 		if escapes.hasIndex(c) then
@@ -639,7 +639,7 @@ And._matchSyntaxLogic = function(ctx, arg=null)
 end function
 
 
-And.generate = function
+And.generatePegString = function
 	pattern = self.getOnlyChild
 	innerParens = ["", ""]
 	if pattern.tags == "" then
@@ -653,7 +653,7 @@ And.generate = function
 	else
 		outerParens = ["", ""]
 	end if
-	return outerParens[0] + "& " + innerParens[0] + pattern.generate + innerParens[1] + outerParens[1] + tags
+	return outerParens[0] + "& " + innerParens[0] + pattern.generatePegString + innerParens[1] + outerParens[1] + tags
 end function
 
 
@@ -694,7 +694,7 @@ Not._matchSyntaxLogic = function(ctx, arg=null)
 end function
 
 
-Not.generate = function
+Not.generatePegString = function
 	pattern = self.getOnlyChild
 	innerParens = ["", ""]
 	if pattern.tags == "" then
@@ -708,7 +708,7 @@ Not.generate = function
 	else
 		outerParens = ["", ""]
 	end if
-	return outerParens[0] + "! " + innerParens[0] + pattern.generate + innerParens[1] + outerParens[1] + tags
+	return outerParens[0] + "! " + innerParens[0] + pattern.generatePegString + innerParens[1] + outerParens[1] + tags
 end function
 
 
@@ -777,7 +777,7 @@ Choice._matchSyntaxLogic = function(ctx, arg=null)
 end function
 
 
-Choice.generate = function
+Choice.generatePegString = function
 	children = []
 	for pattern in self.children
 		innerParens = ["", ""]
@@ -786,7 +786,7 @@ Choice.generate = function
 				if pattern isa cls then innerParens = ["( ", " )"]
 			end for
 		end if
-		children.push innerParens[0] + pattern.generate + innerParens[1]
+		children.push innerParens[0] + pattern.generatePegString + innerParens[1]
 	end for
 	tags = self.tags
 	if tags != "" then
@@ -856,7 +856,7 @@ Concat._matchSyntaxLogic = function(ctx, arg=null)
 end function
 
 
-Concat.generate = function
+Concat.generatePegString = function
 	children = []
 	for pattern in self.children
 		innerParens = ["", ""]
@@ -865,7 +865,7 @@ Concat.generate = function
 				if pattern isa cls then innerParens = ["( ", " )"]
 			end for
 		end if
-		children.push innerParens[0] + pattern.generate + innerParens[1]
+		children.push innerParens[0] + pattern.generatePegString + innerParens[1]
 	end for
 	tags = self.tags
 	if tags != "" then
@@ -915,7 +915,7 @@ Optional._matchSyntaxLogic = function(ctx, arg=null)
 end function
 
 
-Optional.generate = function
+Optional.generatePegString = function
 	pattern = self.getOnlyChild
 	innerParens = ["", ""]
 	if pattern.tags == "" then
@@ -923,7 +923,7 @@ Optional.generate = function
 			if pattern isa cls then innerParens = ["( ", " )"]
 		end for
 	end if
-	return innerParens[0] + pattern.generate + innerParens[1] + " ?" + self.tags
+	return innerParens[0] + pattern.generatePegString + innerParens[1] + " ?" + self.tags
 end function
 
 
@@ -974,7 +974,7 @@ ZeroOrMore._matchSyntaxLogic = function(ctx, arg=null)
 end function
 
 
-ZeroOrMore.generate = function
+ZeroOrMore.generatePegString = function
 	pattern = self.getOnlyChild
 	innerParens = ["", ""]
 	if pattern.tags == "" then
@@ -982,7 +982,7 @@ ZeroOrMore.generate = function
 			if pattern isa cls then innerParens = ["( ", " )"]
 		end for
 	end if
-	return innerParens[0] + pattern.generate + innerParens[1] + " *" + self.tags
+	return innerParens[0] + pattern.generatePegString + innerParens[1] + " *" + self.tags
 end function
 
 
@@ -1036,7 +1036,7 @@ OneOrMore._matchSyntaxLogic = function(ctx, arg=null)
 end function
 
 
-OneOrMore.generate = function
+OneOrMore.generatePegString = function
 	pattern = self.getOnlyChild
 	innerParens = ["", ""]
 	if pattern.tags == "" then
@@ -1044,7 +1044,7 @@ OneOrMore.generate = function
 			if pattern isa cls then innerParens = ["( ", " )"]
 		end for
 	end if
-	return innerParens[0] + pattern.generate + innerParens[1] + " +" + self.tags
+	return innerParens[0] + pattern.generatePegString + innerParens[1] + " +" + self.tags
 end function
 
 
@@ -1208,7 +1208,7 @@ end function
 
 
 Grammar._str = function
-	if not self._isInstance then return self._name + " class"
+	if not self._inited then return self._name + " class"
 	lines = [self.nodeToStr]
 	for ruleName in self.ruleOrder
 		lines.push " " + ruleName + "->"
@@ -1375,7 +1375,7 @@ Grammar.parse = function(subject, start=null, arg=null, initialRule=null)
 end function
 
 
-Grammar.generate = function(delimiter="")
+Grammar.generatePegString = function(delimiter="")
 	defs = []
 	maxNameLength = 0
 	for ruleName in self.ruleOrder
@@ -1393,7 +1393,7 @@ Grammar.generate = function(delimiter="")
 					if pattern isa cls then innerParens = ["(", ")"]
 				end for
 			end if
-			def.pattern = innerParens[0] + pattern.generate + innerParens[1]
+			def.pattern = innerParens[0] + pattern.generatePegString + innerParens[1]
 			if self.defaultRule == ruleName then
 				def.arrow = ": "
 			else
@@ -1454,7 +1454,7 @@ RuleRef._matchSyntaxLogic = function(ctx, arg=null)
 end function
 
 
-RuleRef.generate = function
+RuleRef.generatePegString = function
 	return self.ruleName + self.tags
 end function
 

@@ -1,3 +1,6 @@
+// expandVars("  $foo  ", {"foo": "bar"})  =>  "  bar  "
+
+
 import "mapUtil"
 import "peg"
 
