@@ -15,9 +15,9 @@ testExampleParseList = function
 		return match.fragment.val
 	end function
 	
-	qa.assertEqual g.parse("[]").captures, []
-	qa.assertEqual g.parse("[11,22,33]").captures, [11, 22, 33]
-	qa.assertEqual g.parse("[ 44, 55 ]").captures, [44, 55]
+	qa.assertEqual g.parse("[]").captures.list, []
+	qa.assertEqual g.parse("[11,22,33]").captures.list, [11, 22, 33]
+	qa.assertEqual g.parse("[ 44, 55 ]").captures.list, [44, 55]
 end function
 
 
@@ -44,7 +44,7 @@ testLpegExampleAddNumerals = function
 	end function
 	
 	g.addCaptureAction "sum", function(match, subcaptures, arg)
-		return sum(subcaptures)
+		return sum(subcaptures.list)
 	end function
 	
 	qa.assertEqual g.parse("10,30,43").capture, 83
@@ -57,8 +57,8 @@ testLpegExampleStringUpper = function
 	g.setDefaultRule "up"
 	
 	g.addCaptureAction "up", function(match, subcaptures, arg)
-		if subcaptures[-1] == "^" then return subcaptures[0].upper
-		return subcaptures[0]
+		if subcaptures.list[-1] == "^" then return subcaptures.list[0].upper
+		return subcaptures.list[0]
 	end function
 	
 	qa.assertEqual g.parse("hello").capture, "hello"
@@ -75,12 +75,12 @@ testLpegExampleNameValueList = function
 	g.setDefaultRule "list"
 	
 	g.addCaptureAction "pair", function(match, subcaptures, arg)
-		return subcaptures[:]
+		return subcaptures.list[:]
 	end function
 	
 	g.addCaptureAction "list", function(match, subcaptures, arg)
 		res = {}
-		for cap in subcaptures
+		for cap in subcaptures.list
 			res[cap[0]] = cap[1]
 		end for
 		return res
@@ -100,10 +100,10 @@ testLpegExampleSplitString = function
 	g.setDefaultRule "result"
 	
 	res = g.parse("a b c", null, {"sep": peg.makeLiteral(" ")})
-	qa.assertEqual res.captures, ["a", "b", "c"]
+	qa.assertEqual res.captures.list, ["a", "b", "c"]
 	
 	res = g.parse("a--b--c", null, {"sep": peg.makeLiteral("--")})
-	qa.assertEqual res.captures, ["a", "b", "c"]
+	qa.assertEqual res.captures.list, ["a", "b", "c"]
 end function
 
 
@@ -153,7 +153,7 @@ testLpegExampleGlobalSubstitution = function
 	end function
 	
 	g.addCaptureAction "gsub", function(match, subcaptures, arg)
-		return subcaptures.join("")
+		return subcaptures.list.join("")
 	end function
 	
 	arg = {}
@@ -185,16 +185,16 @@ testLpegExampleCommaSeparatedValues = function
 	end function
 	
 	res = g.parse("")
-	qa.assertEqual res.captures, [""]
+	qa.assertEqual res.captures.list, [""]
 	
 	res = g.parse("foo,bar,baz")
-	qa.assertEqual res.captures, ["foo", "bar", "baz"]
+	qa.assertEqual res.captures.list, ["foo", "bar", "baz"]
 	
 	res = g.parse("foo,""bar"",baz")
-	qa.assertEqual res.captures, ["foo", "bar", "baz"]
+	qa.assertEqual res.captures.list, ["foo", "bar", "baz"]
 	
 	res = g.parse("foo,bar,baz" + char(13) + "alice,bob,charlie")
-	qa.assertEqual res.captures, ["foo", "bar", "baz"]
+	qa.assertEqual res.captures.list, ["foo", "bar", "baz"]
 end function
 
 
@@ -220,10 +220,10 @@ testLpegExampleLuaLongStrings = function
 	end function
 	
 	res = g.parse("", 0, {})
-	qa.assertEqual res.captures, []
+	qa.assertEqual res.captures.list, []
 	
 	res = g.parse("[=[]]", 0, {})
-	qa.assertEqual res.captures, []
+	qa.assertEqual res.captures.list, []
 	
 	res = g.parse("[[]]", 0, {})
 	qa.assertEqual res.capture, ""
@@ -255,10 +255,10 @@ testLpegExampleArithmeticExpressionsTree = function
 		_val = function(x)
 			if x isa string then return x.val else return x
 		end function
-		acc = _val(subcaptures[0])
-		for i in range(1, subcaptures.len - 1, 2)
-			op = subcaptures[i]
-			x = _val(subcaptures[i + 1])
+		acc = _val(subcaptures.list[0])
+		for i in range(1, subcaptures.list.len - 1, 2)
+			op = subcaptures.list[i]
+			x = _val(subcaptures.list[i + 1])
 			if op == "+" then
 				acc += x
 			else if op == "-" then
@@ -294,10 +294,10 @@ testLpegExampleArithmeticExpressionsOnTheFly = function
 		_val = function(x)
 			if x isa string then return x.val else return x
 		end function
-		acc = _val(subcaptures[0])
-		for i in range(1, subcaptures.len - 1, 2)
-			op = subcaptures[i]
-			x = _val(subcaptures[i + 1])
+		acc = _val(subcaptures.list[0])
+		for i in range(1, subcaptures.list.len - 1, 2)
+			op = subcaptures.list[i]
+			x = _val(subcaptures.list[i + 1])
 			if op == "+" then
 				acc += x
 			else if op == "-" then

@@ -24,7 +24,7 @@ testMatchCaptureValuesNoCaptures = function
 	
 	captures = m.captureValues(ctx)
 	
-	qa.assertEqual captures, []
+	qa.assertEqual captures.list, []
 end function
 
 
@@ -41,7 +41,7 @@ testMatchCaptureValuesOneCapture = function
 	m2.addChild m3
 	
 	_capture = function(match, captures, arg)
-		return ([match.fragment] + captures).join(" : ")
+		return ([match.fragment] + captures.list).join(" : ")
 	end function
 	m.capture = @_capture
 	m3.capture = @_capture
@@ -54,7 +54,7 @@ testMatchCaptureValuesOneCapture = function
 	
 	captures = m.captureValues(ctx)
 	
-	qa.assertEqual captures, ["A : C"]
+	qa.assertEqual captures.list, ["A : C"]
 end function
 
 
@@ -71,7 +71,7 @@ testMatchCaptureValuesManyCaptures = function
 	m2.addChild m3
 	
 	_capture = function(match, captures, arg)
-		captures.push match.fragment
+		captures.list.push match.fragment
 		return captures
 	end function
 	m.capture = @_capture
@@ -85,7 +85,7 @@ testMatchCaptureValuesManyCaptures = function
 	
 	captures = m.captureValues(ctx)
 	
-	qa.assertEqual captures, ["C", "A"]
+	qa.assertEqual captures.list, ["C", "A"]
 end function
 
 
@@ -102,7 +102,7 @@ testMatchCaptureValuesArg = function
 	m2.addChild m3
 	
 	_capture = function(match, captures, arg)
-		captures.push match.fragment + arg
+		captures.list.push match.fragment + arg
 		return captures
 	end function
 	m.capture = @_capture
@@ -116,7 +116,7 @@ testMatchCaptureValuesArg = function
 	
 	captures = m.captureValues(ctx, "!!!")
 	
-	qa.assertEqual captures, ["C!!!", "A!!!"]
+	qa.assertEqual captures.list, ["C!!!", "A!!!"]
 end function
 
 
@@ -172,7 +172,7 @@ testMatchCaptureValuesNoCapturesInPredicates = function
 	m2.addChild m3
 	
 	_capture = function(match, captures, arg)
-		return ([match.fragment] + captures).join(" : ")
+		return ([match.fragment] + captures.list).join(" : ")
 	end function
 	m.capture = @_capture
 	m3.capture = @_capture
@@ -185,6 +185,6 @@ testMatchCaptureValuesNoCapturesInPredicates = function
 	
 	captures = m.captureValues(ctx)
 	
-	qa.assertEqual captures, ["A"]
+	qa.assertEqual captures.list, ["A"]
 end function
 

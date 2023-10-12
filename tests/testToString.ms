@@ -232,7 +232,7 @@ end function
 testParseResultToString = function
 	g = peg.makeGrammar("xxx <- ('foo' {} 'bar' {}) {}")
 	res = g.parse("foobar")
-	qa.assertEqual res._str, "ParseResult(length: 6, match: Match(0, 6, foobar, Grammar(xxx))..., errors: [], captures: [""foo"", ""bar"", ""foobar""])"
+	qa.assertEqual res._str, "ParseResult(length: 6, match: Match(0, 6, foobar, Grammar(xxx))..., errors: [], captures.list: [""foo"", ""bar"", ""foobar""], captures.map: {})"
 end function
 
 

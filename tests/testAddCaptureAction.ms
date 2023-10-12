@@ -259,7 +259,8 @@ testAddCaptureWithoutRuleName = function
 	ctx = peg.makeParseContext("foo", 0)
 	m = g.matchSyntax(ctx)
 	c = m.captureValues(ctx)
-	qa.assertEqual c, [42]
+	qa.assertEqual c.list, [42]
+	qa.assertEqual c.map, {}
 end function
 
 
@@ -274,7 +275,8 @@ testAddCaptureWithRuleName = function
 	ctx = peg.makeParseContext("foo", 0)
 	m = g.matchSyntax(ctx)
 	c = m.captureValues(ctx)
-	qa.assertEqual c, [42]
+	qa.assertEqual c.list, [42]
+	qa.assertEqual c.map, {}
 end function
 
 

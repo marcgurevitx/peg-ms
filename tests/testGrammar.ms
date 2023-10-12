@@ -29,7 +29,7 @@ testGrammarOnlyRuleIsDefaultRule = function
 	                                " Match(0, 3, foo, Literal(foo))"
 	qa.assertEqual res.length, 3
 	qa.assertEqual res.errors, []
-	qa.assertEqual res.captures, []
+	qa.assertEqual res.captures.list, []
 end function
 
 
@@ -38,7 +38,7 @@ testGrammarParseResultOneCapture = function
 	g.addRule "Foo", peg.makeLiteral("foo").withCaptureTag
 	
 	res = g.parse("foo")
-	qa.assertEqual res.captures, ["foo"]
+	qa.assertEqual res.captures.list, ["foo"]
 	qa.assertEqual res.capture, "foo"
 	
 	g = peg.makeGrammar
@@ -48,7 +48,7 @@ testGrammarParseResultOneCapture = function
 	])
 	
 	res = g.parse("foobar")
-	qa.assertEqual res.captures, ["foo", "bar"]
+	qa.assertEqual res.captures.list, ["foo", "bar"]
 	qa.assertEqual res.capture, null
 end function
 
@@ -60,19 +60,19 @@ testGrammarInitWithPegLiteral = function
 	qa.assertEqual res.match, null
 	qa.assertEqual res.length, null
 	qa.assertEqual res.errors, []
-	qa.assertEqual res.captures, []
+	qa.assertEqual res.captures.list, []
 	
 	res = g.parse("foo")
 	qa.assertEqual res.match.nodeToStr, "Match(0, 3, foo, Grammar(A))"
 	qa.assertEqual res.length, 3
 	qa.assertEqual res.errors, []
-	qa.assertEqual res.captures, []
+	qa.assertEqual res.captures.list, []
 	
 	res = g.parse("  foo", 2)
 	qa.assertEqual res.match.nodeToStr, "Match(2, 3, foo, Grammar(A))"
 	qa.assertEqual res.length, 3
 	qa.assertEqual res.errors, []
-	qa.assertEqual res.captures, []
+	qa.assertEqual res.captures.list, []
 end function
 
 

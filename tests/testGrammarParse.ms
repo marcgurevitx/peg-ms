@@ -13,27 +13,27 @@ testGrammarParseNoCaptures = function
 	qa.assertEqual res.match, null
 	qa.assertEqual res.length, null
 	qa.assertEqual res.errors, []
-	qa.assertEqual res.captures, []
+	qa.assertEqual res.captures.list, []
 	
 	res = g.parse("x")
 	qa.assertEqual res.match, null
 	qa.assertEqual res.length, null
 	qa.assertEqual res.errors, []
-	qa.assertEqual res.captures, []
+	qa.assertEqual res.captures.list, []
 	
 	res = g.parse("foo")
 	qa.assertEqual res.match._str,  "Match(0, 3, foo, Grammar(Foo))" + _NL +
 	                                " Match(0, 3, foo, Literal(foo))"
 	qa.assertEqual res.length, 3
 	qa.assertEqual res.errors, []
-	qa.assertEqual res.captures, []
+	qa.assertEqual res.captures.list, []
 	
 	res = g.parse("  foo", 2)
 	qa.assertEqual res.match._str,  "Match(2, 3, foo, Grammar(Foo))" + _NL +
 	                                " Match(2, 3, foo, Literal(foo))"
 	qa.assertEqual res.length, 3
 	qa.assertEqual res.errors, []
-	qa.assertEqual res.captures, []
+	qa.assertEqual res.captures.list, []
 end function
 
 
@@ -50,28 +50,28 @@ testGrammarParseSyntaxError = function
 	qa.assertEqual res.length, null
 	qa.assertEqual res.errors[0] isa peg.SyntaxError, true
 	qa.assertEqual res.errors[0].tag, "xxx"
-	qa.assertEqual res.captures, []
+	qa.assertEqual res.captures.list, []
 	
 	res = g.parse("x")
 	qa.assertEqual res.match, null
 	qa.assertEqual res.length, null
 	qa.assertEqual res.errors[0] isa peg.SyntaxError, true
 	qa.assertEqual res.errors[0].tag, "xxx"
-	qa.assertEqual res.captures, []
+	qa.assertEqual res.captures.list, []
 	
 	res = g.parse("foo")
 	qa.assertEqual res.match._str,  "Match(0, 3, foo, Grammar(Foo))" + _NL +
 	                                " Match(0, 3, foo, Literal(foo) <xxx>)"
 	qa.assertEqual res.length, 3
 	qa.assertEqual res.errors, []
-	qa.assertEqual res.captures, []
+	qa.assertEqual res.captures.list, []
 	
 	res = g.parse("  foo", 2)
 	qa.assertEqual res.match._str,  "Match(2, 3, foo, Grammar(Foo))" + _NL +
 	                                " Match(2, 3, foo, Literal(foo) <xxx>)"
 	qa.assertEqual res.length, 3
 	qa.assertEqual res.errors, []
-	qa.assertEqual res.captures, []
+	qa.assertEqual res.captures.list, []
 end function
 
 
@@ -91,27 +91,27 @@ testGrammarParseCapture = function
 	qa.assertEqual res.match, null
 	qa.assertEqual res.length, null
 	qa.assertEqual res.errors, []
-	qa.assertEqual res.captures, []
+	qa.assertEqual res.captures.list, []
 	
 	res = g.parse("x")
 	qa.assertEqual res.match, null
 	qa.assertEqual res.length, null
 	qa.assertEqual res.errors, []
-	qa.assertEqual res.captures, []
+	qa.assertEqual res.captures.list, []
 	
 	res = g.parse("foo")
 	qa.assertEqual res.match._str,  "Match(0, 3, foo, Grammar(Foo))" + _NL +
 	                                " Match(0, 3, foo, Literal(foo) {xxx}, +)"
 	qa.assertEqual res.length, 3
 	qa.assertEqual res.errors, []
-	qa.assertEqual res.captures, ["+ foo +"]
+	qa.assertEqual res.captures.list, ["+ foo +"]
 	
 	res = g.parse("  foo", 2)
 	qa.assertEqual res.match._str,  "Match(2, 3, foo, Grammar(Foo))" + _NL +
 	                                " Match(2, 3, foo, Literal(foo) {xxx}, +)"
 	qa.assertEqual res.length, 3
 	qa.assertEqual res.errors, []
-	qa.assertEqual res.captures, ["+ foo +"]
+	qa.assertEqual res.captures.list, ["+ foo +"]
 end function
 
 
@@ -133,13 +133,13 @@ testGrammarParseSemanticError = function
 	qa.assertEqual res.match, null
 	qa.assertEqual res.length, null
 	qa.assertEqual res.errors, []
-	qa.assertEqual res.captures, []
+	qa.assertEqual res.captures.list, []
 	
 	res = g.parse("x")
 	qa.assertEqual res.match, null
 	qa.assertEqual res.length, null
 	qa.assertEqual res.errors, []
-	qa.assertEqual res.captures, []
+	qa.assertEqual res.captures.list, []
 	
 	res = g.parse("foo")
 	qa.assertEqual res.match._str,  "Match(0, 3, foo, Grammar(Foo))" + _NL +
@@ -147,7 +147,7 @@ testGrammarParseSemanticError = function
 	qa.assertEqual res.length, null
 	qa.assertEqual res.errors[0] isa peg.SemanticError, true
 	qa.assertEqual res.errors[0].message, "/ foo /"
-	qa.assertEqual res.captures, []
+	qa.assertEqual res.captures.list, []
 	
 	res = g.parse("  foo", 2)
 	qa.assertEqual res.match._str,  "Match(2, 3, foo, Grammar(Foo))" + _NL +
@@ -155,7 +155,7 @@ testGrammarParseSemanticError = function
 	qa.assertEqual res.length, null
 	qa.assertEqual res.errors[0] isa peg.SemanticError, true
 	qa.assertEqual res.errors[0].message, "/ foo /"
-	qa.assertEqual res.captures, []
+	qa.assertEqual res.captures.list, []
 end function
 
 

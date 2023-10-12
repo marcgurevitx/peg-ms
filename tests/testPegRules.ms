@@ -17,19 +17,19 @@ testPegSpace = function
 	qa.assertEqual res.match.nodeToStr, "Match(0, 0, , Grammar(Space))"
 	qa.assertEqual res.length, 0
 	qa.assertEqual res.errors, []
-	qa.assertEqual res.captures, []
+	qa.assertEqual res.captures.list, []
 	
 	res = g.parse(" ", null, arg)
 	qa.assertEqual res.match.nodeToStr, "Match(0, 1,  , Grammar(Space))"
 	qa.assertEqual res.length, 1
 	qa.assertEqual res.errors, []
-	qa.assertEqual res.captures, []
+	qa.assertEqual res.captures.list, []
 	
 	res = g.parse(" " + char(13) + " ", null, arg)
 	qa.assertEqual res.match.length, 3
 	qa.assertEqual res.length, 3
 	qa.assertEqual res.errors, []
-	qa.assertEqual res.captures, []
+	qa.assertEqual res.captures.list, []
 end function
 
 
@@ -46,25 +46,25 @@ testPegComment = function
 	qa.assertEqual res.match, null
 	qa.assertEqual res.length, null
 	qa.assertEqual res.errors, []
-	qa.assertEqual res.captures, []
+	qa.assertEqual res.captures.list, []
 	
 	res = g.parse("# foo", null, arg)
 	qa.assertEqual res.match.nodeToStr, "Match(0, 5, # foo, Grammar(Comment))"
 	qa.assertEqual res.length, 5
 	qa.assertEqual res.errors, []
-	qa.assertEqual res.captures, []
+	qa.assertEqual res.captures.list, []
 	
 	res = g.parse("# foo" + _NL, null, arg)
 	qa.assertEqual res.match.nodeToStr, "Match(0, 6, # foo" + _NL + ", Grammar(Comment))"
 	qa.assertEqual res.length, 6
 	qa.assertEqual res.errors, []
-	qa.assertEqual res.captures, []
+	qa.assertEqual res.captures.list, []
 	
 	res = g.parse("# foo" + _NL + "xxx", null, arg)
 	qa.assertEqual res.match.nodeToStr, "Match(0, 6, # foo" + _NL + ", Grammar(Comment))"
 	qa.assertEqual res.length, 6
 	qa.assertEqual res.errors, []
-	qa.assertEqual res.captures, []
+	qa.assertEqual res.captures.list, []
 end function
 
 
@@ -81,7 +81,7 @@ testPegSpaceComment = function
 	qa.assertEqual res.match.nodeToStr, "Match(0, 17, # foo" + _NL + "   " + _NL + "# bar" + _NL + char(9) + ", Grammar(Space))"
 	qa.assertEqual res.length, 17
 	qa.assertEqual res.errors, []
-	qa.assertEqual res.captures, []
+	qa.assertEqual res.captures.list, []
 end function
 
 
@@ -98,13 +98,13 @@ testPegIdentifier = function
 	qa.assertEqual res.match, null
 	qa.assertEqual res.length, null
 	qa.assertEqual res.errors, []
-	qa.assertEqual res.captures, []
+	qa.assertEqual res.captures.list, []
 	
 	res = g.parse("foo", null, arg)
 	qa.assertEqual res.match.nodeToStr, "Match(0, 3, foo, Grammar(Identifier))"
 	qa.assertEqual res.length, 3
 	qa.assertEqual res.errors, []
-	qa.assertEqual res.captures, ["foo"]
+	qa.assertEqual res.captures.list, ["foo"]
 end function
 
 
@@ -121,19 +121,19 @@ testPegEscape = function
 	qa.assertEqual res.match, null
 	qa.assertEqual res.length, null
 	qa.assertEqual res.errors, []
-	qa.assertEqual res.captures, []
+	qa.assertEqual res.captures.list, []
 	
 	res = g.parse("\", null, arg)
 	qa.assertEqual res.match, null
 	qa.assertEqual res.length, null
 	qa.assertEqual res.errors, []
-	qa.assertEqual res.captures, []
+	qa.assertEqual res.captures.list, []
 	
 	res = g.parse("\abc", null, arg)
 	qa.assertEqual res.match, null
 	qa.assertEqual res.length, null
 	qa.assertEqual res.errors, []
-	qa.assertEqual res.captures, []
+	qa.assertEqual res.captures.list, []
 	
 	res = g.parse("\tabc", null, arg)
 	qa.assertEqual res.match.nodeToStr, "Match(0, 2, \t, Grammar(Escape))"
@@ -186,47 +186,47 @@ testPegCharClass = function
 	qa.assertEqual res.match, null
 	qa.assertEqual res.length, null
 	qa.assertEqual res.errors, []
-	qa.assertEqual res.captures, []
+	qa.assertEqual res.captures.list, []
 	
 	res = g.parse("x", null, arg)
 	qa.assertEqual res.match, null
 	qa.assertEqual res.length, null
 	qa.assertEqual res.errors, []
-	qa.assertEqual res.captures, []
+	qa.assertEqual res.captures.list, []
 	
 	res = g.parse("[x]", null, arg)
 	qa.assertEqual res.match.nodeToStr, "Match(0, 3, [x], Grammar(CharClass))"
 	qa.assertEqual res.length, 3
 	qa.assertEqual res.errors, []
-	qa.assertEqual res.captures[0]._str,    "Choice()"     + _NL +
-	                                        " Literal(x)"
+	qa.assertEqual res.captures.list[0]._str,   "Choice()"     + _NL +
+	                                            " Literal(x)"
 	
 	res = g.parse("[a-c]", null, arg)
 	qa.assertEqual res.match.nodeToStr, "Match(0, 5, [a-c], Grammar(CharClass))"
 	qa.assertEqual res.length, 5
 	qa.assertEqual res.errors, []
-	qa.assertEqual res.captures[0]._str,    "Choice()"      + _NL +
-	                                        " CharRange(a, c)"
+	qa.assertEqual res.captures.list[0]._str,   "Choice()"      + _NL +
+	                                            " CharRange(a, c)"
 	
 	res = g.parse("[xa-c]", null, arg)
 	qa.assertEqual res.match.nodeToStr, "Match(0, 6, [xa-c], Grammar(CharClass))"
 	qa.assertEqual res.length, 6
 	qa.assertEqual res.errors, []
-	qa.assertEqual res.captures[0]._str,    "Choice()"      + _NL +
-	                                        " Literal(x)"   + _NL +
-	                                        " CharRange(a, c)"
+	qa.assertEqual res.captures.list[0]._str,   "Choice()"      + _NL +
+	                                            " Literal(x)"   + _NL +
+	                                            " CharRange(a, c)"
 	
 	res = g.parse("[]", null, arg)
 	qa.assertEqual res.match, null
 	qa.assertEqual res.length, null
 	qa.assertEqual res.errors[0] isa peg.SyntaxError, true
-	qa.assertEqual res.captures, []
+	qa.assertEqual res.captures.list, []
 	
 	res = g.parse("[a-c", null, arg)
 	qa.assertEqual res.match, null
 	qa.assertEqual res.length, null
 	qa.assertEqual res.errors[0] isa peg.SyntaxError, true
-	qa.assertEqual res.captures, []
+	qa.assertEqual res.captures.list, []
 end function
 
 
@@ -273,31 +273,31 @@ testPegLiteralSingleQuotes = function
 	qa.assertEqual res.match, null
 	qa.assertEqual res.length, null
 	qa.assertEqual res.errors, []
-	qa.assertEqual res.captures, []
+	qa.assertEqual res.captures.list, []
 	
 	res = g.parse("x", null, arg)
 	qa.assertEqual res.match, null
 	qa.assertEqual res.length, null
 	qa.assertEqual res.errors, []
-	qa.assertEqual res.captures, []
+	qa.assertEqual res.captures.list, []
 	
 	res = g.parse("''", null, arg)
 	qa.assertEqual res.match.nodeToStr, "Match(0, 2, '', Grammar(Literal))"
 	qa.assertEqual res.length, 2
 	qa.assertEqual res.errors, []
-	qa.assertEqual res.captures[0]._str, "Literal()"
+	qa.assertEqual res.captures.list[0]._str, "Literal()"
 	
 	res = g.parse("'foo'", null, arg)
 	qa.assertEqual res.match.nodeToStr, "Match(0, 5, 'foo', Grammar(Literal))"
 	qa.assertEqual res.length, 5
 	qa.assertEqual res.errors, []
-	qa.assertEqual res.captures[0]._str, "Literal(foo)"
+	qa.assertEqual res.captures.list[0]._str, "Literal(foo)"
 	
 	res = g.parse("'foo", null, arg)
 	qa.assertEqual res.match, null
 	qa.assertEqual res.length, null
 	qa.assertEqual res.errors[0] isa peg.SyntaxError, true
-	qa.assertEqual res.captures, []
+	qa.assertEqual res.captures.list, []
 end function
 
 
@@ -314,31 +314,31 @@ testPegLiteralDoubleQuotes = function
 	qa.assertEqual res.match, null
 	qa.assertEqual res.length, null
 	qa.assertEqual res.errors, []
-	qa.assertEqual res.captures, []
+	qa.assertEqual res.captures.list, []
 	
 	res = g.parse("x", null, arg)
 	qa.assertEqual res.match, null
 	qa.assertEqual res.length, null
 	qa.assertEqual res.errors, []
-	qa.assertEqual res.captures, []
+	qa.assertEqual res.captures.list, []
 	
 	res = g.parse("""""", null, arg)
 	qa.assertEqual res.match.nodeToStr, "Match(0, 2, """", Grammar(Literal))"
 	qa.assertEqual res.length, 2
 	qa.assertEqual res.errors, []
-	qa.assertEqual res.captures[0]._str, "Literal()"
+	qa.assertEqual res.captures.list[0]._str, "Literal()"
 	
 	res = g.parse("""foo""", null, arg)
 	qa.assertEqual res.match.nodeToStr, "Match(0, 5, ""foo"", Grammar(Literal))"
 	qa.assertEqual res.length, 5
 	qa.assertEqual res.errors, []
-	qa.assertEqual res.captures[0]._str, "Literal(foo)"
+	qa.assertEqual res.captures.list[0]._str, "Literal(foo)"
 	
 	res = g.parse("""foo", null, arg)
 	qa.assertEqual res.match, null
 	qa.assertEqual res.length, null
 	qa.assertEqual res.errors[0] isa peg.SyntaxError, true
-	qa.assertEqual res.captures, []
+	qa.assertEqual res.captures.list, []
 end function
 
 
@@ -390,19 +390,19 @@ testPegAnyChar = function
 	qa.assertEqual res.match, null
 	qa.assertEqual res.length, null
 	qa.assertEqual res.errors, []
-	qa.assertEqual res.captures, []
+	qa.assertEqual res.captures.list, []
 	
 	res = g.parse("x", null, arg)
 	qa.assertEqual res.match, null
 	qa.assertEqual res.length, null
 	qa.assertEqual res.errors, []
-	qa.assertEqual res.captures, []
+	qa.assertEqual res.captures.list, []
 	
 	res = g.parse(".", null, arg)
 	qa.assertEqual res.match.nodeToStr, "Match(0, 1, ., Grammar(AnyChar))"
 	qa.assertEqual res.length, 1
 	qa.assertEqual res.errors, []
-	qa.assertEqual res.captures[0]._str, "AnyChar()"
+	qa.assertEqual res.captures.list[0]._str, "AnyChar()"
 end function
 
 
@@ -419,7 +419,7 @@ testPegPrimaryAnyChar = function
 	qa.assertEqual res.match.nodeToStr, "Match(0, 1, ., Grammar(Primary))"
 	qa.assertEqual res.length, 1
 	qa.assertEqual res.errors, []
-	qa.assertEqual res.captures[0]._str, "AnyChar()"
+	qa.assertEqual res.captures.list[0]._str, "AnyChar()"
 end function
 
 
@@ -436,9 +436,9 @@ testPegPrimaryCharClass = function
 	qa.assertEqual res.match.nodeToStr, "Match(0, 6, [a-cx], Grammar(Primary))"
 	qa.assertEqual res.length, 6
 	qa.assertEqual res.errors, []
-	qa.assertEqual res.captures[0]._str,    "Choice()"      + _NL +
-	                                        " CharRange(a, c)"  + _NL +
-	                                        " Literal(x)"
+	qa.assertEqual res.captures.list[0]._str,   "Choice()"      + _NL +
+	                                            " CharRange(a, c)"  + _NL +
+	                                            " Literal(x)"
 end function
 
 
@@ -455,13 +455,13 @@ testPegPrimaryIdentifier = function
 	qa.assertEqual res.match.nodeToStr, "Match(0, 3, Foo, Grammar(Primary))"
 	qa.assertEqual res.length, 3
 	qa.assertEqual res.errors, []
-	qa.assertEqual res.captures[0]._str, "RuleRef(Foo)"
+	qa.assertEqual res.captures.list[0]._str, "RuleRef(Foo)"
 	
 	res = g.parse("Foo <-", null, arg)
 	qa.assertEqual res.match, null
 	qa.assertEqual res.length, null
 	qa.assertEqual res.errors, []
-	qa.assertEqual res.captures, []
+	qa.assertEqual res.captures.list, []
 end function
 
 
@@ -478,7 +478,7 @@ testPegPrimaryLiteral = function
 	qa.assertEqual res.match.nodeToStr, "Match(0, 5, 'bar', Grammar(Primary))"
 	qa.assertEqual res.length, 5
 	qa.assertEqual res.errors, []
-	qa.assertEqual res.captures[0]._str, "Literal(bar)"
+	qa.assertEqual res.captures.list[0]._str, "Literal(bar)"
 end function
 
 
@@ -495,25 +495,25 @@ testPegMatchTimeTag = function
 	qa.assertEqual res.match, null
 	qa.assertEqual res.length, null
 	qa.assertEqual res.errors, []
-	qa.assertEqual res.captures, []
+	qa.assertEqual res.captures.list, []
 	
 	res = g.parse("<>", null, arg)
 	qa.assertEqual res.match.nodeToStr, "Match(0, 2, <>, Grammar(MatchTimeTag))"
 	qa.assertEqual res.length, 2
 	qa.assertEqual res.errors, []
-	qa.assertEqual res.captures, ["<"]
+	qa.assertEqual res.captures.list, ["<"]
 	
 	res = g.parse("<foo>", null, arg)
 	qa.assertEqual res.match.nodeToStr, "Match(0, 5, <foo>, Grammar(MatchTimeTag))"
 	qa.assertEqual res.length, 5
 	qa.assertEqual res.errors, []
-	qa.assertEqual res.captures, ["<foo"]
+	qa.assertEqual res.captures.list, ["<foo"]
 	
 	res = g.parse("<foo", null, arg)
 	qa.assertEqual res.match, null
 	qa.assertEqual res.length, null
 	qa.assertEqual res.errors[0] isa peg.SyntaxError, true
-	qa.assertEqual res.captures, []
+	qa.assertEqual res.captures.list, []
 end function
 
 
@@ -530,25 +530,25 @@ testPegCaptureTag = function
 	qa.assertEqual res.match, null
 	qa.assertEqual res.length, null
 	qa.assertEqual res.errors, []
-	qa.assertEqual res.captures, []
+	qa.assertEqual res.captures.list, []
 	
 	res = g.parse("{}", null, arg)
 	qa.assertEqual res.match.nodeToStr, "Match(0, 2, {}, Grammar(CaptureTag))"
 	qa.assertEqual res.length, 2
 	qa.assertEqual res.errors, []
-	qa.assertEqual res.captures, ["{"]
+	qa.assertEqual res.captures.list, ["{"]
 	
 	res = g.parse("{foo}", null, arg)
 	qa.assertEqual res.match.nodeToStr, "Match(0, 5, {foo}, Grammar(CaptureTag))"
 	qa.assertEqual res.length, 5
 	qa.assertEqual res.errors, []
-	qa.assertEqual res.captures, ["{foo"]
+	qa.assertEqual res.captures.list, ["{foo"]
 	
 	res = g.parse("{foo", null, arg)
 	qa.assertEqual res.match, null
 	qa.assertEqual res.length, null
 	qa.assertEqual res.errors[0] isa peg.SyntaxError, true
-	qa.assertEqual res.captures, []
+	qa.assertEqual res.captures.list, []
 end function
 
 
@@ -565,8 +565,8 @@ testPegWithSuffixStar = function
 	qa.assertEqual res.match.nodeToStr, "Match(0, 2, .*, Grammar(WithSuffix))"
 	qa.assertEqual res.length, 2
 	qa.assertEqual res.errors, []
-	qa.assertEqual res.captures[0]._str,    "ZeroOrMore()" + _NL +
-	                                        " AnyChar()"
+	qa.assertEqual res.captures.list[0]._str,   "ZeroOrMore()" + _NL +
+	                                            " AnyChar()"
 end function
 
 
@@ -583,8 +583,8 @@ testPegWithSuffixPlus = function
 	qa.assertEqual res.match.nodeToStr, "Match(0, 6, 'foo'+, Grammar(WithSuffix))"
 	qa.assertEqual res.length, 6
 	qa.assertEqual res.errors, []
-	qa.assertEqual res.captures[0]._str,    "OneOrMore()" + _NL +
-	                                        " Literal(foo)"
+	qa.assertEqual res.captures.list[0]._str,   "OneOrMore()" + _NL +
+	                                            " Literal(foo)"
 end function
 
 
@@ -601,9 +601,9 @@ testPegWithSuffixQuestion = function
 	qa.assertEqual res.match.nodeToStr, "Match(0, 6, [a-z]?, Grammar(WithSuffix))"
 	qa.assertEqual res.length, 6
 	qa.assertEqual res.errors, []
-	qa.assertEqual res.captures[0]._str,    "Optional()"    + _NL +
-	                                        " Choice()"     + _NL +
-	                                        "  CharRange(a, z)"
+	qa.assertEqual res.captures.list[0]._str,   "Optional()"    + _NL +
+	                                            " Choice()"     + _NL +
+	                                            "  CharRange(a, z)"
 end function
 
 
@@ -620,8 +620,8 @@ testPegWithSuffixColon = function
 	qa.assertEqual res.match.nodeToStr, "Match(0, 9, Foo <bar>, Grammar(WithSuffix))"
 	qa.assertEqual res.length, 9
 	qa.assertEqual res.errors, []
-	qa.assertEqual res.captures[0]._str, "RuleRef(Foo) <bar>"
-	qa.assertEqual res.captures[0].matchTimeTag, "bar"
+	qa.assertEqual res.captures.list[0]._str, "RuleRef(Foo) <bar>"
+	qa.assertEqual res.captures.list[0].matchTimeTag, "bar"
 end function
 
 
@@ -638,9 +638,9 @@ testPegWithSuffixBrace = function
 	qa.assertEqual res.match.nodeToStr, "Match(0, 9, [x] {bar}, Grammar(WithSuffix))"
 	qa.assertEqual res.length, 9
 	qa.assertEqual res.errors, []
-	qa.assertEqual res.captures[0]._str,    "Choice() {bar}" + _NL +
-	                                        " Literal(x)"
-	qa.assertEqual res.captures[0].captureTag, "bar"
+	qa.assertEqual res.captures.list[0]._str,   "Choice() {bar}" + _NL +
+	                                            " Literal(x)"
+	qa.assertEqual res.captures.list[0].captureTag, "bar"
 end function
 
 
@@ -657,8 +657,8 @@ testPegAlternativeNoPrefix = function
 	qa.assertEqual res.match.nodeToStr, "Match(0, 1, ., Grammar(Alternative))"
 	qa.assertEqual res.length, 1
 	qa.assertEqual res.errors, []
-	qa.assertEqual res.captures[0]._str,    "Concat()" + _NL +
-	                                        " AnyChar()"
+	qa.assertEqual res.captures.list[0]._str,   "Concat()" + _NL +
+	                                            " AnyChar()"
 end function
 
 
@@ -675,9 +675,9 @@ testPegAlternativeNot = function
 	qa.assertEqual res.match.nodeToStr, "Match(0, 6, !'foo', Grammar(Alternative))"
 	qa.assertEqual res.length, 6
 	qa.assertEqual res.errors, []
-	qa.assertEqual res.captures[0]._str,    "Concat()"        + _NL +
-	                                        " Not()"          + _NL +
-	                                        "  Literal(foo)"
+	qa.assertEqual res.captures.list[0]._str,   "Concat()"        + _NL +
+	                                            " Not()"          + _NL +
+	                                            "  Literal(foo)"
 end function
 
 
@@ -694,10 +694,10 @@ testPegAlternativeAnd = function
 	qa.assertEqual res.match.nodeToStr, "Match(0, 5, &Foo+, Grammar(Alternative))"
 	qa.assertEqual res.length, 5
 	qa.assertEqual res.errors, []
-	qa.assertEqual res.captures[0]._str,    "Concat()"        + _NL +
-	                                        " And()"          + _NL +
-	                                        "  OneOrMore()"   + _NL +
-	                                        "   RuleRef(Foo)"
+	qa.assertEqual res.captures.list[0]._str,   "Concat()"        + _NL +
+	                                            " And()"          + _NL +
+	                                            "  OneOrMore()"   + _NL +
+	                                            "   RuleRef(Foo)"
 end function
 
 
@@ -714,14 +714,14 @@ testPegAlternativeConcat = function
 	qa.assertEqual res.match.nodeToStr, "Match(0, 15, A  &B  C  !D  E, Grammar(Alternative))"
 	qa.assertEqual res.length, 15
 	qa.assertEqual res.errors, []
-	qa.assertEqual res.captures[0]._str,    "Concat()"        + _NL +
-	                                        " RuleRef(A)"     + _NL +
-	                                        " And()"          + _NL +
-	                                        "  RuleRef(B)"    + _NL +
-	                                        " RuleRef(C)"     + _NL +
-	                                        " Not()"          + _NL +
-	                                        "  RuleRef(D)"    + _NL +
-	                                        " RuleRef(E)"
+	qa.assertEqual res.captures.list[0]._str,   "Concat()"        + _NL +
+	                                            " RuleRef(A)"     + _NL +
+	                                            " And()"          + _NL +
+	                                            "  RuleRef(B)"    + _NL +
+	                                            " RuleRef(C)"     + _NL +
+	                                            " Not()"          + _NL +
+	                                            "  RuleRef(D)"    + _NL +
+	                                            " RuleRef(E)"
 end function
 
 
@@ -738,13 +738,13 @@ testPegAlternativeNoPatternError = function
 	qa.assertEqual res.match, null
 	qa.assertEqual res.length, null
 	qa.assertEqual res.errors[0] isa peg.SyntaxError, true
-	qa.assertEqual res.captures, []
+	qa.assertEqual res.captures.list, []
 	
 	res = g.parse("&", null, arg)
 	qa.assertEqual res.match, null
 	qa.assertEqual res.length, null
 	qa.assertEqual res.errors[0] isa peg.SyntaxError, true
-	qa.assertEqual res.captures, []
+	qa.assertEqual res.captures.list, []
 end function
 
 
@@ -761,14 +761,14 @@ testPegPattern = function
 	qa.assertEqual res.match.nodeToStr, "Match(0, 16, A  /  B  C  /  D, Grammar(Pattern))"
 	qa.assertEqual res.length, 16
 	qa.assertEqual res.errors, []
-	qa.assertEqual res.captures[0]._str,    "Choice()"        + _NL +
-	                                        " Concat()"       + _NL +
-	                                        "  RuleRef(A)"    + _NL +
-	                                        " Concat()"       + _NL +
-	                                        "  RuleRef(B)"    + _NL +
-	                                        "  RuleRef(C)"    + _NL +
-	                                        " Concat()"       + _NL +
-	                                        "  RuleRef(D)"
+	qa.assertEqual res.captures.list[0]._str,   "Choice()"        + _NL +
+	                                            " Concat()"       + _NL +
+	                                            "  RuleRef(A)"    + _NL +
+	                                            " Concat()"       + _NL +
+	                                            "  RuleRef(B)"    + _NL +
+	                                            "  RuleRef(C)"    + _NL +
+	                                            " Concat()"       + _NL +
+	                                            "  RuleRef(D)"
 end function
 
 
@@ -799,13 +799,13 @@ testPegPrimaryPattern = function
 	qa.assertEqual res.match.nodeToStr, "Match(0, 13, (Foo+ / Bar*), Grammar(Primary))"
 	qa.assertEqual res.length, 13
 	qa.assertEqual res.errors, []
-	qa.assertEqual res.captures[0]._str,    "Choice()"         + _NL +
-	                                        " Concat()"        + _NL +
-	                                        "  OneOrMore()"    + _NL +
-	                                        "   RuleRef(Foo)"  + _NL +
-	                                        " Concat()"        + _NL +
-	                                        "  ZeroOrMore()"   + _NL +
-	                                        "   RuleRef(Bar)"
+	qa.assertEqual res.captures.list[0]._str,   "Choice()"         + _NL +
+	                                            " Concat()"        + _NL +
+	                                            "  OneOrMore()"    + _NL +
+	                                            "   RuleRef(Foo)"  + _NL +
+	                                            " Concat()"        + _NL +
+	                                            "  ZeroOrMore()"   + _NL +
+	                                            "   RuleRef(Bar)"
 end function
 
 
@@ -822,8 +822,8 @@ testPegGrammarOneRule = function
 	qa.assertEqual res.length, 12
 	qa.assertEqual res.errors, []
 	
-	rules = res.captures[0].rules
-	ruleOrder = res.captures[0].ruleOrder
+	rules = res.captures.list[0].rules
+	ruleOrder = res.captures.list[0].ruleOrder
 	qa.assertEqual ruleOrder, ["A"]
 	qa.assertEqual rules.A._str, "Choice()"        + _NL +
 	                             " Concat()"       + _NL +
@@ -844,8 +844,8 @@ testPegGrammarManyRules = function
 	qa.assertEqual res.length, 32
 	qa.assertEqual res.errors, []
 	
-	rules = res.captures[0].rules
-	ruleOrder = res.captures[0].ruleOrder
+	rules = res.captures.list[0].rules
+	ruleOrder = res.captures.list[0].ruleOrder
 	qa.assertEqual ruleOrder, ["A", "B", "C"]
 	qa.assertEqual rules.A._str, "Choice()"        + _NL +
 	                             " Concat()"       + _NL +
@@ -871,7 +871,7 @@ testPegGrammarErrorNoRuleDef = function
 	qa.assertEqual res.match, null
 	qa.assertEqual res.length, null
 	qa.assertEqual res.errors[0] isa peg.SyntaxError, true
-	qa.assertEqual res.captures, []
+	qa.assertEqual res.captures.list, []
 end function
 
 
@@ -887,7 +887,7 @@ testPegGrammarErrorNoArrow = function
 	qa.assertEqual res.match, null
 	qa.assertEqual res.length, null
 	qa.assertEqual res.errors[0] isa peg.SyntaxError, true
-	qa.assertEqual res.captures, []
+	qa.assertEqual res.captures.list, []
 end function
 
 
@@ -903,7 +903,7 @@ testPegGrammarErrorNoRuleDefs = function
 	qa.assertEqual res.match, null
 	qa.assertEqual res.length, null
 	qa.assertEqual res.errors[0] isa peg.SyntaxError, true
-	qa.assertEqual res.captures, []
+	qa.assertEqual res.captures.list, []
 end function
 
 
@@ -919,7 +919,7 @@ testPegGrammarErrorMissingRule = function
 	qa.assertEqual res.match.nodeToStr, "Match(0, 8, A  <-  B, Grammar(Grammar))"
 	qa.assertEqual res.length, null
 	qa.assertEqual res.errors[0] isa peg.SemanticError, true
-	qa.assertEqual res.captures, []
+	qa.assertEqual res.captures.list, []
 end function
 
 
@@ -936,8 +936,8 @@ testPegGrammarInclusion = function
 	qa.assertEqual res.length, 18
 	qa.assertEqual res.errors, []
 	
-	rules = res.captures[0].rules
-	ruleOrder = res.captures[0].ruleOrder
+	rules = res.captures.list[0].rules
+	ruleOrder = res.captures.list[0].ruleOrder
 	qa.assertEqual ruleOrder, ["A", "B"]
 	qa.assertEqual rules.A._str, "Choice()"        + _NL +
 	                             " Concat()"       + _NL +
@@ -957,7 +957,7 @@ testPegGrammarErrorNoNoninclusionRules = function
 	qa.assertEqual res.match.nodeToStr, "Match(0, 18, A  <-  $  B  <-  $, Grammar(Grammar))"
 	qa.assertEqual res.length, null
 	qa.assertEqual res.errors[0] isa peg.SemanticError, true
-	qa.assertEqual res.captures, []
+	qa.assertEqual res.captures.list, []
 end function
 
 
@@ -973,7 +973,7 @@ testPegGrammarErrorRepeatingRuleNames = function
 	qa.assertEqual res.match.nodeToStr, "Match(0, 22, A  <-  [x]  A  <-  [y], Grammar(Grammar))"
 	qa.assertEqual res.length, null
 	qa.assertEqual res.errors[0] isa peg.SemanticError, true
-	qa.assertEqual res.captures, []
+	qa.assertEqual res.captures.list, []
 end function
 
 
@@ -990,7 +990,7 @@ testPegGrammarInitialSpaces = function
 	qa.assertEqual res.length, 5
 	qa.assertEqual res.errors, []
 	
-	rules = res.captures[0].rules
+	rules = res.captures.list[0].rules
 	qa.assertEqual rules.A._str,    "Choice()"      + _NL +
 	                                " Concat()"     + _NL +
 	                                "  AnyChar()"
@@ -1010,8 +1010,8 @@ testPegGrammarInclusions = function
 	qa.assertEqual res.length, 28
 	qa.assertEqual res.errors, []
 	
-	rules = res.captures[0].rules
-	ruleOrder = res.captures[0].ruleOrder
+	rules = res.captures.list[0].rules
+	ruleOrder = res.captures.list[0].ruleOrder
 	qa.assertEqual ruleOrder, ["A", "B", "C"]
 	qa.assertEqual rules.A._str, "Choice()"        + _NL +
 	                             " Concat()"       + _NL +

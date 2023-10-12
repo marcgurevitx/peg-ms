@@ -28,13 +28,13 @@ testMatchTimeCaptureNull = function
 	qa.assertEqual res.match, null
 	qa.assertEqual res.length, null
 	qa.assertEqual res.errors, []
-	qa.assertEqual res.captures, []
+	qa.assertEqual res.captures.list, []
 	
 	res = g.parse("foo")
 	qa.assertEqual res.match, null
 	qa.assertEqual res.length, null
 	qa.assertEqual res.errors, []
-	qa.assertEqual res.captures, []
+	qa.assertEqual res.captures.list, []
 end function
 
 
@@ -53,14 +53,14 @@ testMatchTimeCaptureFakeMatch = function
 	                                " Match(0, 3, bar, )"
 	qa.assertEqual res.length, 3
 	qa.assertEqual res.errors, []
-	qa.assertEqual res.captures, []
+	qa.assertEqual res.captures.list, []
 	
 	res = g.parse("foo")
 	qa.assertEqual res.match._str,  "Match(0, 3, bar, Grammar(A))" + _NL +
 	                                " Match(0, 3, bar, )"
 	qa.assertEqual res.length, 3
 	qa.assertEqual res.errors, []
-	qa.assertEqual res.captures, []
+	qa.assertEqual res.captures.list, []
 end function
 
 
@@ -80,7 +80,7 @@ testMatchTimeCaptureAddSyntaxError = function
 	qa.assertEqual res.errors[0] isa peg.SyntaxError, true
 	qa.assertEqual res.errors[0].message.indexOf("foo bar") != null, true
 	qa.assertEqual res.errors[0].tag, "xxx"
-	qa.assertEqual res.captures, []
+	qa.assertEqual res.captures.list, []
 	
 	res = g.parse("foo")
 	qa.assertEqual res.match, null
@@ -88,7 +88,7 @@ testMatchTimeCaptureAddSyntaxError = function
 	qa.assertEqual res.errors[0] isa peg.SyntaxError, true
 	qa.assertEqual res.errors[0].message.indexOf("foo bar") != null, true
 	qa.assertEqual res.errors[0].tag, "xxx"
-	qa.assertEqual res.captures, []
+	qa.assertEqual res.captures.list, []
 end function
 
 
@@ -97,7 +97,7 @@ testMatchTimeCaptureSubcaptures = function
 	
 	sss = null
 	_f = function(match, captures, arg, _ctx)
-		outer.sss = captures
+		outer.sss = captures.list
 		return match
 	end function
 	
@@ -107,14 +107,14 @@ testMatchTimeCaptureSubcaptures = function
 	qa.assertEqual res.match, null
 	qa.assertEqual res.length, null
 	qa.assertEqual res.errors, []
-	qa.assertEqual res.captures, []
+	qa.assertEqual res.captures.list, []
 	qa.assertEqual sss, []
 	
 	res = g.parse("foobar")
 	qa.assertEqual res.match.nodeToStr, "Match(0, 6, foobar, Grammar(A))"
 	qa.assertEqual res.length, 6
 	qa.assertEqual res.errors, []
-	qa.assertEqual res.captures, ["foo", "bar"]
+	qa.assertEqual res.captures.list, ["foo", "bar"]
 	qa.assertEqual sss, ["foo", "bar"]
 end function
 
@@ -132,7 +132,7 @@ testMatchTimeCaptureSubcapturesAreCached = function
 	
 	sss = null
 	_xxx = function(match, captures, arg, _ctx)
-		outer.sss = captures
+		outer.sss = captures.list
 		return match
 	end function
 	
@@ -142,7 +142,7 @@ testMatchTimeCaptureSubcapturesAreCached = function
 	qa.assertEqual res.match.nodeToStr, "Match(0, 6, foobar, Grammar(A))"
 	qa.assertEqual res.length, 6
 	qa.assertEqual res.errors, []
-	qa.assertEqual res.captures, ["foo", "bar"]
+	qa.assertEqual res.captures.list, ["foo", "bar"]
 	qa.assertEqual sss, ["foo", "bar"]
 	qa.assertEqual n, 1
 end function
@@ -173,7 +173,7 @@ testMatchTimeSemanticError = function
 	qa.assertEqual res.length, null
 	qa.assertEqual res.errors[0] isa peg.SemanticError, true
 	qa.assertEqual res.errors[0].message, "foo"
-	qa.assertEqual res.captures, []
+	qa.assertEqual res.captures.list, []
 end function
 
 

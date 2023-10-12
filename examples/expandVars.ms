@@ -23,11 +23,10 @@ _varName = function(match, subcaptures, arg)
 	arg.cache[name] = arg.recurring
 	if arg.vars.get(name) == null then return arg.missing
 	value = arg.vars[name]
-	res = _grammar.parse(value, 0, arg).captures.join("")
+	res = _grammar.parse(value, 0, arg).captures.list.join("")
 	arg.cache[name] = res
 	return res
 end function
-
 _grammar.addCaptureAction "varName", @_varName
 
 
@@ -41,7 +40,7 @@ expandVars = function(str, vars, params=null)
 	arg.vars = vars
 	arg.cache = {}
 	
-	return _grammar.parse(str, 0, arg).captures.join("")
+	return _grammar.parse(str, 0, arg).captures.list.join("")
 end function
 
 
