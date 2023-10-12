@@ -52,13 +52,14 @@ end function
 
 
 testLpegExampleStringUpper = function
-	g = peg.makeGrammar("  name  <-  [a-z]+ {}               " +
-	                    "  up    <-  ( name  '^'? {} ) {up}  ")
+	g = peg.makeGrammar("  name  <-  [a-z]+ {str:}              " +
+	                    "  up    <-  ( name  '^'? {up:} ) {up}  ")
 	g.setDefaultRule "up"
 	
 	g.addCaptureAction "up", function(match, subcaptures, arg)
-		if subcaptures.list[-1] == "^" then return subcaptures.list[0].upper
-		return subcaptures.list[0]
+		s = subcaptures.map.str
+		if subcaptures.map.up then s = s.upper
+		return s
 	end function
 	
 	qa.assertEqual g.parse("hello").capture, "hello"
