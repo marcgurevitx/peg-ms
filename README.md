@@ -233,7 +233,7 @@ result = g.parse("aaa")
 print result.capture  // "a/a/a"
 ```
 
-In the example above we only use the second parameter to the callback (`subs`). Similar to `ParseResult.captures` it has fields `.list` and `.maps` that contain values produced by subpatterns. The full callback's signature is as follows:
+In the example above we only use the second parameter to the callback (`subs`). Similar to `ParseResult.captures` it has fields `.list` and `.map` that contain values produced by subpatterns. The full callback's signature is as follows:
 
 | Parameter | Type | Description |
 | --- | --- | --- |
@@ -241,7 +241,7 @@ In the example above we only use the second parameter to the callback (`subs`). 
 | `subcaptures` | `{"list":..., "map":...}` | values captured by the subpatterns |
 | `arg` | | optional third parameter to `.parse` |
 
-The return value of the callback becomes the sole capture inside `captures.list` (all other subcaptures from `subs` get dropped). If it's desired to keep the subcaptures, modify `subs` in place **AND** return it:
+The return value of the callback becomes the sole capture inside `captures.list` (all other subcaptures from `subs.list` and `subs.map` get dropped). If it's desired to keep the subcaptures, then instead of returning a capture, modify `subs` in place **AND** return the very `subs` object:
 
 ```
 import "peg"
@@ -340,7 +340,7 @@ result = g.parse("abc")
 print result.capture  // "[b]"
 ```
 
-When no match-time callback is defined for `name`, the suffix `<name>` acts as a shortcut for "report syntax error on the pattern's failure".
+When no match-time callback is defined for `name`, the suffix `<name>` acts as a shortcut for "report syntax error if the pattern fails".
 
 It's not necessary to use a PEG string to create a grammar. It's possible to build the grammar from library level classes:
 
@@ -380,11 +380,12 @@ The full list of pattern classes:
 
 The `Grammar` itself is also a pattern and so one grammar can be embedded inside another grammar.
 
-To add capture "tags" (in place) use these methods:
+The capture and match-time markers don't have pattern classes of their own. Instead, a property ("tag") is assigned to a subpattern `p`:
 
 | Method | PEG |
 | --- | --- |
 | <pre>p.withCaptureTag</pre> | `p {}` |
+| <pre>p.withCaptureTag "key:"</pre> | `p {key:}` |
 | <pre>p.withCaptureTag "name"</pre> | `p {name}` |
 | <pre>p.withMatchTimeTag "name"</pre> | `p <name>` |
 
