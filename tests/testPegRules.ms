@@ -607,7 +607,7 @@ testPegWithSuffixQuestion = function
 end function
 
 
-testPegWithSuffixColon = function
+testPegWithSuffixChevron = function
 	g = new peg.pegGrammar
 	g.setDefaultRule "WithSuffix"
 	
@@ -641,6 +641,45 @@ testPegWithSuffixBrace = function
 	qa.assertEqual res.captures.list[0]._str,   "Choice() {bar}" + _NL +
 	                                            " Literal(x)"
 	qa.assertEqual res.captures.list[0].captureTag, "bar"
+end function
+
+
+testPegWithSuffixMultipleChevrons = function
+	g = new peg.pegGrammar
+	g.setDefaultRule "WithSuffix"
+	
+	//
+	arg = {}
+	arg.ruleNames = {}
+	//
+	
+	res = g.parse("Foo <bar> <baz>", null, arg)
+	qa.assertEqual res.match.nodeToStr, "Match(0, 15, Foo <bar> <baz>, Grammar(WithSuffix))"
+	qa.assertEqual res.length, 15
+	qa.assertEqual res.errors, []
+	qa.assertEqual res.captures.list[0]._str,   "Concat() <baz>" + _NL +
+	                                            " RuleRef(Foo) <bar>"
+	qa.assertEqual res.captures.list[0].matchTimeTag, "baz"
+end function
+
+
+testPegWithSuffixMultipleBraces = function
+	g = new peg.pegGrammar
+	g.setDefaultRule "WithSuffix"
+	
+	//
+	arg = {}
+	arg.ruleNames = {}
+	//
+	
+	res = g.parse("[x] {bar} {baz}", null, arg)
+	qa.assertEqual res.match.nodeToStr, "Match(0, 15, [x] {bar} {baz}, Grammar(WithSuffix))"
+	qa.assertEqual res.length, 15
+	qa.assertEqual res.errors, []
+	qa.assertEqual res.captures.list[0]._str,   "Concat() {baz}" + _NL +
+	                                            " Choice() {bar}" + _NL +
+	                                            "  Literal(x)"
+	qa.assertEqual res.captures.list[0].captureTag, "baz"
 end function
 
 

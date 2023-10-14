@@ -1828,8 +1828,10 @@ _makePegGrammar = function
 			else if suffix[0] == "?" then
 				pattern = makeOptional(pattern)
 			else if suffix[0] == "<" then
+				if pattern.matchTimeTag != null then pattern = makeConcat([pattern])
 				pattern.matchTimeTag = suffix[1:]
 			else if suffix[0] == "{" then
+				if pattern.captureTag != null then pattern = makeConcat([pattern])
 				pattern.captureTag = suffix[1:]
 			else
 				abort "Strange suffix `" + suffix + "`"

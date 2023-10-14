@@ -474,7 +474,7 @@ print stringUpper.parse("foo^").capture  // "FOO"
 
 Here the construction `'^' {up:} ?` only produces a capture if optional `^` symbol is matched, so the `{upper}` callback checks `subcaptures.map.hasIndex("up")` to make its desision.
 
-Note that a different sequence `'^' ? {up:}` whould always capture an empty string if the `^` symbol was missing.
+Note that a different sequence `'^' ? {up:}` would instead capture an empty string if the `^` symbol was missing.
 
 
 ### Name-value lists
