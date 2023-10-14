@@ -70,11 +70,13 @@ testOptimizeConcatOfOnePatternToPattern = function
 	
 	g = new peg.Grammar
 	g.init "A <- ('foo' {xxx}) <yyy>"
-	qa.assertEqual g.getRulePattern("A")._str,  "Literal(foo) <yyy> {xxx}"
+	qa.assertEqual g.getRulePattern("A")._str,  "Choice() <yyy>" + _NL +
+	                                            " Literal(foo) {xxx}"
 	
 	g = new peg.Grammar
 	g.init "A <- ('foo' <xxx>) {yyy}"
-	qa.assertEqual g.getRulePattern("A")._str,  "Literal(foo) <xxx> {yyy}"
+	qa.assertEqual g.getRulePattern("A")._str,  "Choice() {yyy}" + _NL +
+	                                            " Literal(foo) <xxx>"
 end function
 
 

@@ -305,18 +305,17 @@ end function
 Pattern._tryFuseOnlyChild = function
 	if self.children.len > 1 then return self
 	child = self.children[0]
-	mt = [self, child]
-	mt.filter function(p)
-		return p.hasIndex("matchTimeTag")
-	end function
-	if mt.len > 1 then return self
-	cap = [self, child]
-	cap.filter function(p)
-		return p.hasIndex("captureTag")
-	end function
-	if cap.len > 1 then return self
-	if mt.len > 0 then child.matchTimeTag = mt[0].matchTimeTag
-	if cap.len > 0 then child.captureTag = cap[0].captureTag
+	
+	selfHasTags = self.matchTimeTag != null or self.captureTag != null
+	childHasTags = child.matchTimeTag != null or child.captureTag != null
+	
+	if selfHasTags and childHasTags then return self
+	
+	if selfHasTags then
+		child.matchTimeTag = self.matchTimeTag
+		child.captureTag = self.captureTag
+	end if
+	
 	return child
 end function
 
@@ -351,7 +350,7 @@ Pattern.matchSyntax = function(ctx, arg=null)
 		end if
 	end if
 	
-	if match != null and self.captureTag != null then
+	if match != null and @match.capture == null and self.captureTag != null then
 		if self.captureTag == "" then
 			match.capture = function(match, subcaptures, arg)
 				subcaptures.list.push match.fragment
@@ -1606,27 +1605,29 @@ _makePegGrammar = function
 	
 	// CharClass
 	
-	_charClassPeg = "'\['  ( ! '\]'  ( Escape  /  ( .  '-'  ! '\]'  . ) {}  /  . {} ) ) + <noElems> {charClass}  '\]' <noClosing>  Space"
+	_charClassPeg = "'\['  ( ( ! '\]'  ( Escape  /  ( .  '-'  ! '\]'  . ) {}  /  . {} ) ) + <noElems> ) {charClass}  '\]' <noClosing>  Space"
 	
 	g.addRule "CharClass",
 		makeConcat([
 			makeLiteral("["),
-			makeOneOrMore(
-				makeConcat([
-					makeNot(
-						makeLiteral("]")),
-					makeChoice([
-						makeRuleRef("Escape"),
-						makeConcat([
-							makeAnyChar,
-							makeLiteral("-"),
-							makeNot(
-								makeLiteral("]")),
-							makeAnyChar,
-						]).withCaptureTag,
-						makeAnyChar.withCaptureTag,
-					]),
-				])).withMatchTimeTag("noElems").withCaptureTag("charClass"),
+			makeConcat([
+				makeOneOrMore(
+					makeConcat([
+						makeNot(
+							makeLiteral("]")),
+						makeChoice([
+							makeRuleRef("Escape"),
+							makeConcat([
+								makeAnyChar,
+								makeLiteral("-"),
+								makeNot(
+									makeLiteral("]")),
+								makeAnyChar,
+							]).withCaptureTag,
+							makeAnyChar.withCaptureTag,
+						]),
+					])).withMatchTimeTag("noElems"),
+			]).withCaptureTag("charClass"),
 			makeLiteral("]").withMatchTimeTag("noClosing"),
 			makeRuleRef("Space"),
 		])
@@ -1828,10 +1829,10 @@ _makePegGrammar = function
 			else if suffix[0] == "?" then
 				pattern = makeOptional(pattern)
 			else if suffix[0] == "<" then
-				if pattern.matchTimeTag != null then pattern = makeConcat([pattern])
+				if pattern.matchTimeTag != null or pattern.captureTag != null then pattern = makeConcat([pattern])
 				pattern.matchTimeTag = suffix[1:]
 			else if suffix[0] == "{" then
-				if pattern.captureTag != null then pattern = makeConcat([pattern])
+				if pattern.matchTimeTag != null or pattern.captureTag != null then pattern = makeConcat([pattern])
 				pattern.captureTag = suffix[1:]
 			else
 				abort "Strange suffix `" + suffix + "`"
@@ -1904,15 +1905,17 @@ _makePegGrammar = function
 	
 	// Definition
 	
-	_definitionPeg = "Identifier  ( '<-'  /  [:] ) <noArrowOrColon> {}  Space  ( Pattern  /  '$' {}  Space  ( & Definition  /  ! . ) <notNextDef> ) <noRulePattern>"
+	_definitionPeg = "Identifier  ( ( '<-'  /  [:] ) <noArrowOrColon> ) {}  Space  ( Pattern  /  '$' {}  Space  ( & Definition  /  ! . ) <notNextDef> ) <noRulePattern>"
 	
 	g.addRule "Definition",
 		makeConcat([
 			makeRuleRef("Identifier"),
-			makeChoice([
-				makeLiteral("<-"),
-				makeCharSet(":"),
-			]).withMatchTimeTag("noArrowOrColon").withCaptureTag,
+			makeConcat([
+				makeChoice([
+					makeLiteral("<-"),
+					makeCharSet(":"),
+				]).withMatchTimeTag("noArrowOrColon"),
+			]).withCaptureTag,
 			makeRuleRef("Space"),
 			makeChoice([
 				makeRuleRef("Pattern"),
@@ -1934,13 +1937,15 @@ _makePegGrammar = function
 	
 	// Grammar
 	
-	_grammarPeg = "Space  Definition + <noRuleDefs> {ruleDefs}  ( ! . ) <noEos>"
+	_grammarPeg = "Space  ( Definition + <noRuleDefs> ) {ruleDefs}  ( ! . ) <noEos>"
 	
 	g.addRule "Grammar",
 		makeConcat([
 			makeRuleRef("Space"),
-			makeOneOrMore(
-				makeRuleRef("Definition")).withCaptureTag("ruleDefs").withMatchTimeTag("noRuleDefs"),
+			makeConcat([
+				makeOneOrMore(
+					makeRuleRef("Definition")).withMatchTimeTag("noRuleDefs"),
+			]).withCaptureTag("ruleDefs"),
 			makeNot(
 				makeAnyChar).withMatchTimeTag("noEos"),
 		])

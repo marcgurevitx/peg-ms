@@ -620,7 +620,7 @@ testPegWithSuffixChevron = function
 	qa.assertEqual res.match.nodeToStr, "Match(0, 9, Foo <bar>, Grammar(WithSuffix))"
 	qa.assertEqual res.length, 9
 	qa.assertEqual res.errors, []
-	qa.assertEqual res.captures.list[0]._str, "RuleRef(Foo) <bar>"
+	qa.assertEqual res.captures.list[0]._str,   "RuleRef(Foo) <bar>"
 	qa.assertEqual res.captures.list[0].matchTimeTag, "bar"
 end function
 
@@ -1063,58 +1063,58 @@ end function
 
 testPegGenerate = function
 	p = peg.pegGrammar.getRulePattern("Comment")
-	qa.assertEqual p.generate, p._DEBUG_PEG
+	qa.assertEqual p.generatePegString, p._DEBUG_PEG
 	
 	p = peg.pegGrammar.getRulePattern("Space")
-	qa.assertEqual p.generate, p._DEBUG_PEG
+	qa.assertEqual p.generatePegString, p._DEBUG_PEG
 	
 	p = peg.pegGrammar.getRulePattern("Identifier")
-	qa.assertEqual p.generate, p._DEBUG_PEG
+	qa.assertEqual p.generatePegString, p._DEBUG_PEG
 	
 	p = peg.pegGrammar.getRulePattern("Escape")
-	qa.assertEqual p.generate, p._DEBUG_PEG
+	qa.assertEqual p.generatePegString, p._DEBUG_PEG
 	
 	p = peg.pegGrammar.getRulePattern("CharClass")
-	qa.assertEqual p.generate, p._DEBUG_PEG
+	qa.assertEqual p.generatePegString, p._DEBUG_PEG
 	
 	p = peg.pegGrammar.getRulePattern("Literal")
-	qa.assertEqual p.generate, p._DEBUG_PEG
+	qa.assertEqual p.generatePegString, p._DEBUG_PEG
 	
 	p = peg.pegGrammar.getRulePattern("AnyChar")
-	qa.assertEqual p.generate, p._DEBUG_PEG
+	qa.assertEqual p.generatePegString, p._DEBUG_PEG
 	
 	p = peg.pegGrammar.getRulePattern("Primary")
-	qa.assertEqual p.generate, p._DEBUG_PEG
+	qa.assertEqual p.generatePegString, p._DEBUG_PEG
 	
 	p = peg.pegGrammar.getRulePattern("MatchTimeTag")
-	qa.assertEqual p.generate, p._DEBUG_PEG
+	qa.assertEqual p.generatePegString, p._DEBUG_PEG
 	
 	p = peg.pegGrammar.getRulePattern("CaptureTag")
-	qa.assertEqual p.generate, p._DEBUG_PEG
+	qa.assertEqual p.generatePegString, p._DEBUG_PEG
 	
 	p = peg.pegGrammar.getRulePattern("WithSuffix")
-	qa.assertEqual p.generate, p._DEBUG_PEG
+	qa.assertEqual p.generatePegString, p._DEBUG_PEG
 	
 	p = peg.pegGrammar.getRulePattern("Alternative")
-	qa.assertEqual p.generate, p._DEBUG_PEG
+	qa.assertEqual p.generatePegString, p._DEBUG_PEG
 	
 	p = peg.pegGrammar.getRulePattern("Pattern")
-	qa.assertEqual p.generate, p._DEBUG_PEG
+	qa.assertEqual p.generatePegString, p._DEBUG_PEG
 	
 	p = peg.pegGrammar.getRulePattern("Definition")
-	qa.assertEqual p.generate, p._DEBUG_PEG
+	qa.assertEqual p.generatePegString, p._DEBUG_PEG
 	
 	p = peg.pegGrammar.getRulePattern("Grammar")
-	qa.assertEqual p.generate, p._DEBUG_PEG
+	qa.assertEqual p.generatePegString, p._DEBUG_PEG
 end function
 
 
 testPegGrammarParseGenerate = function
-	s = peg.pegGrammar.generate(_NL)
+	s = peg.pegGrammar.generatePegString(_NL)
 	
 	g = new peg.Grammar
 	g.init s
 	
-	qa.assertEqual g.generate(_NL), s
+	qa.assertEqual g.generatePegString(_NL), s
 end function
 
