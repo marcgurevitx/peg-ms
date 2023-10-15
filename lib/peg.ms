@@ -1066,6 +1066,7 @@ ParseContext.ruleName = null
 ParseContext.ruleStart = null
 ParseContext.subject = null
 ParseContext.syntaxErrors = null
+ParseContext.flags = null
 
 
 ParseContext.init = function(subject, index, initialRule=null)
@@ -1074,6 +1075,7 @@ ParseContext.init = function(subject, index, initialRule=null)
 	self._initialRule = initialRule
 	self.cachedSubcaptures = []
 	self.syntaxErrors = []
+	self.flags = {}
 end function
 
 
@@ -1099,6 +1101,24 @@ ParseContext.getSubcaptures = function(match)
 		return elem[1]
 	end for
 	return null
+end function
+
+
+// getFlag: Computes the value of a position flag from start upto `index`.
+ParseContext.getFlag = function(index, flagName)
+	if not index isa number then abort ".getFlag expected an index, got `" + index + "`"
+	flag = 0
+	for i in self.flags.indexes.sort
+		if i > index then break
+		pattern = self.flags[i]
+		if pattern.flag != flagName then continue
+		if pattern.addP then
+			flag += 1
+		else
+			flag -= 1
+		end if
+	end for
+	return flag
 end function
 
 
@@ -1465,6 +1485,57 @@ makeRuleRef = function(ruleName)
 end function
 
 
+// PositionFlag: Pattern that adds or removes a boolean flag associated with a position in the subject:  (+foo)  (-foo)
+// This pseudo-pattern always succeeds.
+PositionFlag = new Pattern
+PositionFlag._name = "PositionFlag"
+PositionFlag.addP = null
+PositionFlag.flag = null
+
+
+PositionFlag.init = function(addP, flag)
+	super.init
+	self.addP = addP
+	self.flag = flag
+end function
+
+
+PositionFlag.nodeToStr = function
+	if self.addP then
+		s = "+"
+	else
+		s = "-"
+	end if
+	return "PositionFlag(" + s + self.flag + ")"
+end function
+
+
+// _matchSyntaxLogic: Registers a position flag (and always succeeds).
+PositionFlag._matchSyntaxLogic = function(ctx, arg=null)
+	ctx.flags[ctx.index] = self
+	match = new Match
+	match.init ctx.index, 0, "", self
+	return match
+end function
+
+
+PositionFlag.generatePegString = function
+	if self.addP then
+		s = "+"
+	else
+		s = "-"
+	end if
+	return "(" + s + self.flag + ")"
+end function
+
+
+makePositionFlag = function(addP, flag)
+	p = new PositionFlag
+	p.init addP, flag
+	return p
+end function
+
+
 // _makePegGrammar: Build a grammar object that parses PEGs.
 _makePegGrammar = function
 	abort               = @outer.abort
@@ -1479,6 +1550,7 @@ _makePegGrammar = function
 	makeOneOrMore       = @outer.makeOneOrMore
 	makeOptional        = @outer.makeOptional
 	makeCharRange       = @outer.makeCharRange
+	makePositionFlag    = @outer.makePositionFlag
 	makeRuleRef         = @outer.makeRuleRef
 	makeZeroOrMore      = @outer.makeZeroOrMore
 	
@@ -1843,9 +1915,36 @@ _makePegGrammar = function
 	g.addCaptureAction "withSuffix", @_withSuffixSemantics
 	
 	
+	// PositionFlag
+	
+	_positionFlagPeg = "( '('  [+-] {}  Space  Identifier <noIdentifier>  ')' <noClosing> ) {positionFlag}  Space"
+	
+	g.addRule "PositionFlag",
+		makeConcat([
+			makeConcat([
+				makeLiteral("("),
+				makeCharSet("+-").withCaptureTag,
+				makeRuleRef("Space"),
+				makeRuleRef("Identifier").withMatchTimeTag("noIdentifier"),
+				makeLiteral(")").withMatchTimeTag("noClosing"),
+			]).withCaptureTag("positionFlag"),
+			makeRuleRef("Space"),
+		])
+	
+	g.getRulePattern("PositionFlag")._DEBUG_PEG = _positionFlagPeg
+	
+	_positionFlagSemantics = function(match, subcaptures, arg)
+		marker = subcaptures.list[0]
+		ident = subcaptures.list[1]
+		pattern = makePositionFlag(marker == "+", ident)
+		return pattern
+	end function
+	g.addCaptureAction "positionFlag", @_positionFlagSemantics
+	
+	
 	// Alternative
 	
-	_alternativePeg = "( ( [!&] {}  Space  WithSuffix <noPattern> ) {prefixed}  /  WithSuffix ) + {concat}"
+	_alternativePeg = "( ( [!&] {}  Space  WithSuffix <noPattern> ) {prefixed}  /  WithSuffix  /  PositionFlag ) + {concat}"
 	
 	g.addRule "Alternative",
 		makeOneOrMore(
@@ -1856,6 +1955,7 @@ _makePegGrammar = function
 					makeRuleRef("WithSuffix").withMatchTimeTag("noPattern"),
 				]).withCaptureTag("prefixed"),
 				makeRuleRef("WithSuffix"),
+				makeRuleRef("PositionFlag"),
 			])).withCaptureTag("concat")
 	
 	g.getRulePattern("Alternative")._DEBUG_PEG = _alternativePeg
