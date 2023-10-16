@@ -1164,9 +1164,14 @@ ParseResult._str = function
 	else
 		m = self.match.nodeToStr + "..."
 	end if
+	ee = []
+	for error in self.errors
+		ee.push error._name + "(" + error.tag + ")"
+	end for
+	ee = ee.join(", ")
 	list_ = self.captures.list
 	map_ = self.captures.map
-	return "ParseResult(length: {l}, match: {m}, errors: {errors}, captures.list: {list_}, captures.map: {map_})".fill(locals + self)
+	return "ParseResult(length: {l}, match: {m}, errors: [{ee}], captures.list: {list_}, captures.map: {map_})".fill(locals)
 end function
 
 
@@ -1174,6 +1179,15 @@ end function
 ParseResult.capture = function
 	if self.captures.list.len == 1 then return self.captures.list[0]
 	return null
+end function
+
+
+// testHasErrorTag: Returns true if one of the errors has the given tag.
+ParseResult.hasErrorTag = function(tag)
+	for error in self.errors
+		if error.tag == tag then return true
+	end for
+	return false
 end function
 
 

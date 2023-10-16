@@ -236,6 +236,13 @@ testParseResultToString = function
 end function
 
 
+testParseResultToStringWithErrors = function
+	g = peg.makeGrammar("xxx <- 'a' <a>  /  'b' <b>  /  'c' <c>")
+	res = g.parse("c")
+	qa.assertEqual res._str, "ParseResult(length: 1, match: Match(0, 1, c, Grammar(xxx))..., errors: [SyntaxError(a), SyntaxError(b)], captures.list: [], captures.map: {})"
+end function
+
+
 testErrorToString = function
 	err = new peg.Error
 	err.init "foo"
