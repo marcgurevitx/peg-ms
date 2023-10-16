@@ -1108,18 +1108,22 @@ end function
 // getFlag: Computes the value of a position flag from start upto `index`.
 ParseContext.getFlag = function(index, flagName)
 	if not index isa number then abort ".getFlag expected an index, got `" + index + "`"
-	flag = 0
+	flagStack = { "_flag": false }
 	for i in self.flags.indexes.sort
 		if i > index then break
 		pattern = self.flags[i]
 		if pattern.flag != flagName then continue
-		if pattern.addP then
-			flag += 1
+		if pattern.action == flagAction.setTrue then
+			flagStack = { "_flag": true, "prevStack": flagStack }
+		else if pattern.action == flagAction.setFalse then
+			flagStack = { "_flag": false, "prevStack": flagStack }
+		else if pattern.action == flagAction.unset then
+			flagStack = flagStack.prevStack
 		else
-			flag -= 1
+			abort "Unknown flag action: `" + pattern.action + "`"
 		end if
 	end for
-	return flag
+	return flagStack._flag
 end function
 
 
@@ -1508,27 +1512,35 @@ makeRuleRef = function(ruleName)
 end function
 
 
-// PositionFlag: Pattern that adds or removes a boolean flag associated with a position in the subject:  (+foo)  (-foo)
+// flagAction: Enum for flag actions.
+flagAction = {}
+flagAction.setTrue = 1
+flagAction.setFalse = 2
+flagAction.unset = 3
+
+
+flagAction.toString = function(a)
+	return {flagAction.setTrue: "+", flagAction.setFalse: "-", flagAction.unset: "/"}[a]
+end function
+
+
+// PositionFlag: Pattern that manipulates a boolean flag associated with a position in the subject:  (+foo)  (-foo)  (/foo)
 // This pseudo-pattern always succeeds.
 PositionFlag = new Pattern
 PositionFlag._name = "PositionFlag"
-PositionFlag.addP = null
+PositionFlag.action = null
 PositionFlag.flag = null
 
 
-PositionFlag.init = function(addP, flag)
+PositionFlag.init = function(action, flag)
 	super.init
-	self.addP = addP
+	self.action = action
 	self.flag = flag
 end function
 
 
 PositionFlag.nodeToStr = function
-	if self.addP then
-		s = "+"
-	else
-		s = "-"
-	end if
+	s = flagAction.toString[self.action]
 	return "PositionFlag(" + s + self.flag + ")"
 end function
 
@@ -1543,18 +1555,14 @@ end function
 
 
 PositionFlag.generatePegString = function
-	if self.addP then
-		s = "+"
-	else
-		s = "-"
-	end if
+	s = flagAction.toString[self.action]
 	return "(" + s + self.flag + ")"
 end function
 
 
-makePositionFlag = function(addP, flag)
+makePositionFlag = function(action, flag)
 	p = new PositionFlag
-	p.init addP, flag
+	p.init action, flag
 	return p
 end function
 
@@ -1576,6 +1584,7 @@ _makePegGrammar = function
 	makePositionFlag    = @outer.makePositionFlag
 	makeRuleRef         = @outer.makeRuleRef
 	makeZeroOrMore      = @outer.makeZeroOrMore
+	flagAction          = outer.flagAction
 	
 	
 	g = makeGrammar
@@ -1940,13 +1949,13 @@ _makePegGrammar = function
 	
 	// PositionFlag
 	
-	_positionFlagPeg = "( '('  [+-] {}  Space  Identifier <noIdentifier>  ')' <noClosing> ) {positionFlag}  Space"
+	_positionFlagPeg = "( '('  [+/-] {}  Space  Identifier <noIdentifier>  ')' <noClosing> ) {positionFlag}  Space"
 	
 	g.addRule "PositionFlag",
 		makeConcat([
 			makeConcat([
 				makeLiteral("("),
-				makeCharSet("+-").withCaptureTag,
+				makeCharSet("+/-").withCaptureTag,
 				makeRuleRef("Space"),
 				makeRuleRef("Identifier").withMatchTimeTag("noIdentifier"),
 				makeLiteral(")").withMatchTimeTag("noClosing"),
@@ -1959,7 +1968,8 @@ _makePegGrammar = function
 	_positionFlagSemantics = function(match, subcaptures, arg)
 		marker = subcaptures.list[0]
 		ident = subcaptures.list[1]
-		pattern = makePositionFlag(marker == "+", ident)
+		action = {"+": flagAction.setTrue, "-": flagAction.setFalse, "/": flagAction.unset}[marker]
+		pattern = makePositionFlag(action, ident)
 		return pattern
 	end function
 	g.addCaptureAction "positionFlag", @_positionFlagSemantics

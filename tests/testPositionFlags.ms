@@ -6,7 +6,7 @@ _NL = peg._NL
 
 testPositionFlagsWithoutMoveBack = function
 	g = new peg.Grammar
-	g.init "A <- 'x' <xxx>   (+foo)   'y' <xxx>   (-foo)   'z' <xxx>"
+	g.init "A <- 'x' <xxx>   (+foo)   'y' <xxx>   (/foo)   'z' <xxx>"
 	
 	_xxx = function(match, subcaptures, arg, ctx)
 		if match != null then arg.foo.push ctx.getFlag(match.start, "foo")
@@ -93,7 +93,7 @@ end function
 
 testPositionFlagsNested = function
 	g = new peg.Grammar
-	g.init "A <- 'x' <xxx>   (+foo)   'y' <xxx>   (+foo)   'z' <xxx>   (-foo)   'w' <xxx>   (-foo)   'v' <xxx>"
+	g.init "A <- 'x' <xxx>   (+foo)   'y' <xxx>   (+foo)   'z' <xxx>   (/foo)   'w' <xxx>   (/foo)   'v' <xxx>"
 	
 	_xxx = function(match, subcaptures, arg, ctx)
 		if match != null then arg.foo.push ctx.getFlag(match.start, "foo")
@@ -127,20 +127,39 @@ testPositionFlagsNested = function
 	arg.foo = []
 	res = g.parse(text, 0, arg)
 	qa.assertEqual res.length, null
-	qa.assertEqual arg.foo, [0, 1, 2]
+	qa.assertEqual arg.foo, [0, 1, 1]
 	
 	text = "xyzw"
 	arg = {}
 	arg.foo = []
 	res = g.parse(text, 0, arg)
 	qa.assertEqual res.length, null
-	qa.assertEqual arg.foo, [0, 1, 2, 1]
+	qa.assertEqual arg.foo, [0, 1, 1, 1]
 	
 	text = "xyzwv"
 	arg = {}
 	arg.foo = []
 	res = g.parse(text, 0, arg)
 	qa.assertEqual res.length, 5
-	qa.assertEqual arg.foo, [0, 1, 2, 1, 0]
+	qa.assertEqual arg.foo, [0, 1, 1, 1, 0]
+end function
+
+
+testPositionFlagsNested2 = function
+	g = new peg.Grammar
+	g.init "A <- 'x' <xxx>   (+foo)   'y' <xxx>   (+foo)   'z' <xxx>   (-foo)   'w' <xxx>   (/foo)   'v' <xxx>   (/foo)   'u' <xxx>   (/foo)   't' <xxx>"
+	
+	_xxx = function(match, subcaptures, arg, ctx)
+		if match != null then arg.foo.push ctx.getFlag(match.start, "foo")
+		return match
+	end function
+	g.matchTime "xxx", @_xxx
+	
+	text = "xyzwvut"
+	arg = {}
+	arg.foo = []
+	res = g.parse(text, 0, arg)
+	qa.assertEqual res.length, 7
+	qa.assertEqual arg.foo, [0, 1, 1, 0, 1, 1, 0]
 end function
 
