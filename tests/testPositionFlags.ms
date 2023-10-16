@@ -46,7 +46,7 @@ end function
 
 testPositionFlagsWithMoveBack = function
 	g = new peg.Grammar
-	g.init "A <- 'x' <xxx>   ( 'y' <xxx>  (+foo)  /  'z' <xxx> )   'w' <xxx>"
+	g.init "A <- 'x' <xxx>   ( 'y' <xxx>  (+foo)   'z' <xxx>   /   'y' <xxx>   'w' <xxx> ) "
 	
 	_xxx = function(match, subcaptures, arg, ctx)
 		if match != null then arg.foo.push ctx.getFlag(match.start, "foo")
@@ -73,28 +73,21 @@ testPositionFlagsWithMoveBack = function
 	arg.foo = []
 	res = g.parse(text, 0, arg)
 	qa.assertEqual res.length, null
-	qa.assertEqual arg.foo, [0, 0]
+	qa.assertEqual arg.foo, [0, 0, 0]
 	
-	text = "xyw"
+	text = "xyz"
 	arg = {}
 	arg.foo = []
 	res = g.parse(text, 0, arg)
 	qa.assertEqual res.length, 3
 	qa.assertEqual arg.foo, [0, 0, 1]
 	
-	text = "xz"
-	arg = {}
-	arg.foo = []
-	res = g.parse(text, 0, arg)
-	qa.assertEqual res.length, null
-	qa.assertEqual arg.foo, [0, 0]
-	
-	text = "xzw"
+	text = "xyw"
 	arg = {}
 	arg.foo = []
 	res = g.parse(text, 0, arg)
 	qa.assertEqual res.length, 3
-	qa.assertEqual arg.foo, [0, 0, 0]
+	qa.assertEqual arg.foo, [0, 0, 0, 0]
 end function
 
 

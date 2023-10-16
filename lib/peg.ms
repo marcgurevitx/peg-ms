@@ -325,6 +325,7 @@ end function
 // `arg` -- optional data passed to `Grammar.parse`
 // Returns a Match object on successful match or null on failure.
 Pattern.matchSyntax = function(ctx, arg=null)
+	ctx.removeFlagsToRight
 	match = self._matchSyntaxLogic(ctx, arg)
 	
 	if self.matchTimeTag != null then
@@ -1119,6 +1120,14 @@ ParseContext.getFlag = function(index, flagName)
 		end if
 	end for
 	return flag
+end function
+
+
+// removeFlagsToRight: Removes position flags to the right of the current index.
+ParseContext.removeFlagsToRight = function
+	for i in self.flags.indexes
+		if i > self.index then self.flags.remove i
+	end for
 end function
 
 
