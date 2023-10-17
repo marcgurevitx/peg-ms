@@ -352,17 +352,29 @@ Pattern.matchSyntax = function(ctx, arg=null)
 	end if
 	
 	if match != null and @match.capture == null and self.captureTag != null then
-		if self.captureTag == "" then
+		tag = self.captureTag
+		tagParts = tag.split(":")
+		isKeyCapture = tagParts.len > 1
+		if tag == "" then
 			match.capture = function(match, subcaptures, arg)
 				subcaptures.list.push match.fragment
 				return subcaptures
 			end function
-		else if self.captureTag.endsWith(":") then
-			key = self.captureTag[:-1]
-			match.capture = function(match, subcaptures, arg)
-				subcaptures.map[key] = match.fragment
-				return subcaptures
-			end function
+		else if isKeyCapture then
+			key = tagParts[0]
+			subIndex = tagParts[1]
+			if subIndex == "" then
+				match.capture = function(match, subcaptures, arg)
+					subcaptures.map[key] = match.fragment
+					return subcaptures
+				end function
+			else
+				subIndex = subIndex.val
+				match.capture = function(match, subcaptures, arg)
+					subcaptures.map[key] = subcaptures.list[subIndex]
+					return subcaptures
+				end function
+			end if
 		else if ctx.grammar != null then
 			match.capture = ctx.grammar.findCaptureAction(ctx.ruleName, self.captureTag)
 			if @match.capture == null then abort "Capture function not defined for {" + self.captureTag + "}"
@@ -1878,18 +1890,27 @@ _makePegGrammar = function
 	
 	// CaptureTag
 	
-	_captureTagPeg = "'{'  Space  ( Identifier ?  [:] {} ? ) {captureTag}  '}' <noClosing>  Space"
+	_captureTagPeg = "'{'  Space  ( Identifier  ( [:]  ( [-] ?  [0-9] + ) ? ) ? {} ) ? {captureTag}  '}' <noClosing>  Space"
 	
 	g.addRule "CaptureTag",
 		makeConcat([
 			makeLiteral("{"),
 			makeRuleRef("Space"),
-			makeConcat([
-				makeOptional(
-					makeRuleRef("Identifier")),
-				makeOptional(
-					makeCharSet(":").withCaptureTag),
-			]).withCaptureTag("captureTag"),
+			makeOptional(
+				makeConcat([
+					makeRuleRef("Identifier"),
+					makeOptional(
+						makeConcat([
+							makeCharSet(":"),
+							makeOptional(
+								makeConcat([
+									makeOptional(
+										makeCharSet("-")),
+									makeOneOrMore(
+										makeCharRange("0", "9")),
+								])),
+						])).withCaptureTag,
+				])).withCaptureTag("captureTag"),
 			makeLiteral("}").withMatchTimeTag("noClosing"),
 			makeRuleRef("Space"),
 		])

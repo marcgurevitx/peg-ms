@@ -30,3 +30,29 @@ testNamedCapturesInCallback = function
 	qa.assertEqual g.parse("foobar").capture, "barfoo"
 end function
 
+
+testNamedCapturesWithIndex = function
+	g = new peg.Grammar
+	g.init "A <- ( 'foo' {up} ) {xxx:0}"
+	
+	_up = function(match, subcaptures, arg)
+		return match.fragment.upper
+	end function
+	g.capture "up", @_up
+	
+	qa.assertEqual g.parse("foo").captures.map, {"xxx": "FOO"}
+end function
+
+
+testNamedCapturesWithNegativeIndex = function
+	g = new peg.Grammar
+	g.init "A <- ( 'foo' {up}  'bar' {up} ) {xxx:-1}"
+	
+	_up = function(match, subcaptures, arg)
+		return match.fragment.upper
+	end function
+	g.capture "up", @_up
+	
+	qa.assertEqual g.parse("foobar").captures.map, {"xxx": "BAR"}
+end function
+
