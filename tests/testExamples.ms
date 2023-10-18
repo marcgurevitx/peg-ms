@@ -11,7 +11,7 @@ testExampleParseList = function
 	        "space <- ' '* ",
 	        "list"
 	
-	g.addCaptureAction "tonumber", function(match, subcaptures, arg)
+	g.addCaptureAction "tonumber", function(match, subcaptures, arg, ctx)
 		return match.fragment.val
 	end function
 	
@@ -39,11 +39,11 @@ testLpegExampleAddNumerals = function
 	                    "  sum     <-  ( number  ( ','  number ) * ) {sum}  ")
 	g.setDefaultRule "sum"
 	
-	g.addCaptureAction "tonumber", function(match, subcaptures, arg)
+	g.addCaptureAction "tonumber", function(match, subcaptures, arg, ctx)
 		return match.fragment.val
 	end function
 	
-	g.addCaptureAction "sum", function(match, subcaptures, arg)
+	g.addCaptureAction "sum", function(match, subcaptures, arg, ctx)
 		return sum(subcaptures.list)
 	end function
 	
@@ -56,7 +56,7 @@ testLpegExampleStringUpper = function
 	                    "  up    <-  ( name  '^'? {up:} ) {up}  ")
 	g.setDefaultRule "up"
 	
-	g.addCaptureAction "up", function(match, subcaptures, arg)
+	g.addCaptureAction "up", function(match, subcaptures, arg, ctx)
 		s = subcaptures.map.str
 		if subcaptures.map.up then s = s.upper
 		return s
@@ -75,11 +75,11 @@ testLpegExampleNameValueList = function
 	                    "  list   <-  pair * {list}                               ")
 	g.setDefaultRule "list"
 	
-	g.addCaptureAction "pair", function(match, subcaptures, arg)
+	g.addCaptureAction "pair", function(match, subcaptures, arg, ctx)
 		return subcaptures.list[:]
 	end function
 	
-	g.addCaptureAction "list", function(match, subcaptures, arg)
+	g.addCaptureAction "list", function(match, subcaptures, arg, ctx)
 		res = {}
 		for cap in subcaptures.list
 			res[cap[0]] = cap[1]
@@ -113,7 +113,7 @@ testLpegExampleSearchPattern = function
 	                    "  search   <-  pattern {pattern}  /  .  search  ")
 	g.setDefaultRule "search"
 	
-	g.addCaptureAction "pattern", function(match, subcaptures, arg)
+	g.addCaptureAction "pattern", function(match, subcaptures, arg, ctx)
 		return [match.start, match.start + match.length]
 	end function
 	
@@ -149,11 +149,11 @@ testLpegExampleGlobalSubstitution = function
 	g = peg.makeGrammar("  pattern  <-  $                                        " +
 	                    "  gsub     <-  ( ( pattern {sub}  /  . {} ) * ) {gsub}  ")
 	
-	g.addCaptureAction "sub", function(match, subcaptures, arg)
+	g.addCaptureAction "sub", function(match, subcaptures, arg, ctx)
 		return arg.repl
 	end function
 	
-	g.addCaptureAction "gsub", function(match, subcaptures, arg)
+	g.addCaptureAction "gsub", function(match, subcaptures, arg, ctx)
 		return subcaptures.list.join("")
 	end function
 	
@@ -181,7 +181,7 @@ testLpegExampleCommaSeparatedValues = function
 	                    "  record   <-  field  ( ','  field ) *  ( newline  /  !. )        ")
 	g.setDefaultRule "record"
 	
-	g.addCaptureAction "qstr", function(match, subcaptures, arg)
+	g.addCaptureAction "qstr", function(match, subcaptures, arg, ctx)
 		return match.fragment.replace("""" + """", """")
 	end function
 	
@@ -252,7 +252,7 @@ testLpegExampleArithmeticExpressionsTree = function
 	                    "  Factor    <-  Number  /  Open  Exp  Close                 ")
 	g.setDefaultRule "Exp"
 	
-	g.addCaptureAction "eval", function(match, subcaptures, arg)
+	g.addCaptureAction "eval", function(match, subcaptures, arg, ctx)
 		_val = function(x)
 			if x isa string then return x.val else return x
 		end function
@@ -309,7 +309,7 @@ testLpegExampleArithmeticExpressionsOnTheFly = function
 				acc /= x
 			end if
 		end for
-		match.capture = function(_, _, _)
+		match.capture = function(_, _, _, _)
 			return acc
 		end function
 		return match

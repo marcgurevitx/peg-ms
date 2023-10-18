@@ -238,7 +238,7 @@ end function
 
 // captureValues: Traverses Match tree and returns list of captured values.
 // Only nodes that have .capture function produce values.
-// Capture function signature should be .capture(match, subcaptures, arg)
+// Capture function signature should be .capture(match, subcaptures, arg, ctx)
 // Predicates don't produce captures.
 Match.captureValues = function(ctx, arg=null)
 	if self.pattern isa And or self.pattern isa Not then return {"list": [], "map": {}}
@@ -255,7 +255,7 @@ Match.captureValues = function(ctx, arg=null)
 		end for
 	end if
 	if @self.capture != null then
-		res = self.capture(self, caps, arg)
+		res = self.capture(self, caps, arg, ctx)
 		if res isa Error then
 			if res.__isa == Error then res.__isa = SemanticError  // transmogrifying to more specific type
 			return res
@@ -356,7 +356,7 @@ Pattern.matchSyntax = function(ctx, arg=null)
 		tagParts = tag.split(":")
 		isKeyCapture = tagParts.len > 1
 		if tag == "" then
-			match.capture = function(match, subcaptures, arg)
+			match.capture = function(match, subcaptures, arg, ctx)
 				subcaptures.list.push match.fragment
 				return subcaptures
 			end function
@@ -364,13 +364,13 @@ Pattern.matchSyntax = function(ctx, arg=null)
 			key = tagParts[0]
 			subIndex = tagParts[1]
 			if subIndex == "" then
-				match.capture = function(match, subcaptures, arg)
+				match.capture = function(match, subcaptures, arg, ctx)
 					subcaptures.map[key] = match.fragment
 					return subcaptures
 				end function
 			else
 				subIndex = subIndex.val
-				match.capture = function(match, subcaptures, arg)
+				match.capture = function(match, subcaptures, arg, ctx)
 					subcaptures.map[key] = subcaptures.list[subIndex]
 					return subcaptures
 				end function
@@ -1349,7 +1349,7 @@ end function
 
 // addCaptureAction: Registers a capture action.
 // The callback will later be associated with a match if that match has the corresponding capture tag.
-// The callback should have a signature: f(match, subcaptures, arg) -> capture.
+// The callback should have a signature: f(match, subcaptures, arg, ctx) -> capture.
 // Optional first arg is the name of the rule whose definition contains the tag.
 Grammar.addCaptureAction = function(arg1, arg2, arg3=null)
 	if @arg3 == null then
@@ -1703,7 +1703,7 @@ _makePegGrammar = function
 	end function
 	g.addMatchTimeAction "fourHex", @_fourHexMT
 	
-	_escapeSemantics = function(match, subcaptures, arg)
+	_escapeSemantics = function(match, subcaptures, arg, ctx)
 		if match.fragment[0] == "u" then
 			return char(hexVal(match.fragment[1:]))
 		else if match.fragment[0] == "t" then
@@ -1750,7 +1750,7 @@ _makePegGrammar = function
 	
 	g.getRulePattern("CharClass")._DEBUG_PEG = _charClassPeg
 	
-	_charClassSemantics = function(match, subcaptures, arg)
+	_charClassSemantics = function(match, subcaptures, arg, ctx)
 		elems = []
 		for cap in subcaptures.list
 			if cap.len == 1 then
@@ -1805,7 +1805,7 @@ _makePegGrammar = function
 	
 	g.getRulePattern("Literal")._DEBUG_PEG = _literalPeg
 	
-	_literalSemantics = function(match, subcaptures, arg)
+	_literalSemantics = function(match, subcaptures, arg, ctx)
 		return makeLiteral(subcaptures.list.join(""))
 	end function
 	g.addCaptureAction "literal", @_literalSemantics
@@ -1823,7 +1823,7 @@ _makePegGrammar = function
 	
 	g.getRulePattern("AnyChar")._DEBUG_PEG = _anyCharPeg
 	
-	_anyCharSemantics = function(match, subcaptures, arg)
+	_anyCharSemantics = function(match, subcaptures, arg, ctx)
 		return makeAnyChar
 	end function
 	g.addCaptureAction "anyChar", @_anyCharSemantics
@@ -1857,7 +1857,7 @@ _makePegGrammar = function
 	
 	g.getRulePattern("Primary")._DEBUG_PEG = _primaryPeg
 	
-	_ruleRefSemantics = function(match, subcaptures, arg)
+	_ruleRefSemantics = function(match, subcaptures, arg, ctx)
 		ruleName = subcaptures.list[-1]
 		arg.ruleNames[ruleName] = true
 		return makeRuleRef(ruleName)
@@ -1881,7 +1881,7 @@ _makePegGrammar = function
 	
 	g.getRulePattern("MatchTimeTag")._DEBUG_PEG = _matchTimeTagPeg
 	
-	_matchTimeTagSemantics = function(match, subcaptures, arg)
+	_matchTimeTagSemantics = function(match, subcaptures, arg, ctx)
 		if subcaptures.list.len == 0 then tag = "" else tag = subcaptures.list[-1]
 		return "<" + tag
 	end function
@@ -1917,7 +1917,7 @@ _makePegGrammar = function
 	
 	g.getRulePattern("CaptureTag")._DEBUG_PEG = _captureTagPeg
 	
-	_captureTagSemantics = function(match, subcaptures, arg)
+	_captureTagSemantics = function(match, subcaptures, arg, ctx)
 		tag = subcaptures.list.join("")
 		return "{" + tag
 	end function
@@ -1944,7 +1944,7 @@ _makePegGrammar = function
 	
 	g.getRulePattern("WithSuffix")._DEBUG_PEG = _withSuffixPeg
 	
-	_withSuffixSemantics = function(match, subcaptures, arg)
+	_withSuffixSemantics = function(match, subcaptures, arg, ctx)
 		pattern = subcaptures.list[0]
 		for suffix in subcaptures.list[1:]
 			if suffix[0] == "*" then
@@ -1986,7 +1986,7 @@ _makePegGrammar = function
 	
 	g.getRulePattern("PositionFlag")._DEBUG_PEG = _positionFlagPeg
 	
-	_positionFlagSemantics = function(match, subcaptures, arg)
+	_positionFlagSemantics = function(match, subcaptures, arg, ctx)
 		marker = subcaptures.list[0]
 		ident = subcaptures.list[1]
 		action = {"+": flagAction.setTrue, "-": flagAction.setFalse, "/": flagAction.unset}[marker]
@@ -2014,7 +2014,7 @@ _makePegGrammar = function
 	
 	g.getRulePattern("Alternative")._DEBUG_PEG = _alternativePeg
 	
-	_prefixedSemantics = function(match, subcaptures, arg)
+	_prefixedSemantics = function(match, subcaptures, arg, ctx)
 		prefix = subcaptures.list[0]
 		pattern = subcaptures.list[1]
 		if prefix == "!" then
@@ -2028,7 +2028,7 @@ _makePegGrammar = function
 	end function
 	g.addCaptureAction "prefixed", @_prefixedSemantics
 	
-	_concatSemantics = function(match, subcaptures, arg)
+	_concatSemantics = function(match, subcaptures, arg, ctx)
 		return makeConcat(subcaptures.list)
 	end function
 	g.addCaptureAction "concat", @_concatSemantics
@@ -2051,7 +2051,7 @@ _makePegGrammar = function
 	
 	g.getRulePattern("Pattern")._DEBUG_PEG = _patternPeg
 	
-	_alternativesSemantics = function(match, subcaptures, arg)
+	_alternativesSemantics = function(match, subcaptures, arg, ctx)
 		return makeChoice(subcaptures.list)
 	end function
 	g.addCaptureAction "alternatives", @_alternativesSemantics
@@ -2106,7 +2106,7 @@ _makePegGrammar = function
 	
 	g.getRulePattern("Grammar")._DEBUG_PEG = _grammarPeg
 	
-	_ruleDefsSemantics = function(match, subcaptures, arg)
+	_ruleDefsSemantics = function(match, subcaptures, arg, ctx)
 		rules = {}
 		ruleOrder = []
 		defaultRule = null

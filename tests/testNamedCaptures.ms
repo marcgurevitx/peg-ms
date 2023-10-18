@@ -22,7 +22,7 @@ testNamedCapturesInCallback = function
 	g = new peg.Grammar
 	g.init "A <- ( 'foo' {foo:} 'bar' {bar:} ) {xxx}"
 	
-	_xxx = function(match, subcaptures, arg)
+	_xxx = function(match, subcaptures, arg, ctx)
 		return subcaptures.map["bar"] + subcaptures.map["foo"]
 	end function
 	g.capture "xxx", @_xxx
@@ -35,7 +35,7 @@ testNamedCapturesWithIndex = function
 	g = new peg.Grammar
 	g.init "A <- ( 'foo' {up} ) {xxx:0}"
 	
-	_up = function(match, subcaptures, arg)
+	_up = function(match, subcaptures, arg, ctx)
 		return match.fragment.upper
 	end function
 	g.capture "up", @_up
@@ -48,7 +48,7 @@ testNamedCapturesWithNegativeIndex = function
 	g = new peg.Grammar
 	g.init "A <- ( 'foo' {up}  'bar' {up} ) {xxx:-1}"
 	
-	_up = function(match, subcaptures, arg)
+	_up = function(match, subcaptures, arg, ctx)
 		return match.fragment.upper
 	end function
 	g.capture "up", @_up

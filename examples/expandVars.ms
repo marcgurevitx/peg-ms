@@ -20,7 +20,7 @@ _grammar.init   "  expandVars   <-  text  ( var  text ) *  " +
 
 // _varName: Captures the value of `vars[varName]`.
 // Manages missing values and cycles.
-_varName = function(match, subcaptures, arg)
+_varName = function(match, subcaptures, arg, ctx)
 	name = match.fragment
 	if arg.cache.get(name) != null then return arg.cache[name]
 	arg.cache[name] = arg.recurring

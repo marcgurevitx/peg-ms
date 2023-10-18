@@ -83,7 +83,7 @@ testGrammarParseCapture = function
 	g.addRule "Foo", _p
 	g.setDefaultRule "Foo"
 	
-	g.addCaptureAction "xxx", function(match, captures, arg)
+	g.addCaptureAction "xxx", function(match, captures, arg, ctx)
 		return "+ " + match.fragment + " +"
 	end function
 	
@@ -124,7 +124,7 @@ testGrammarParseSemanticError = function
 	g.setDefaultRule "Foo"
 	
 	peg = outer.peg
-	_f = function(match, captures, arg)
+	_f = function(match, captures, arg, ctx)
 		return peg.makeError("/ " + match.fragment + " /")
 	end function
 	g.addCaptureAction "xxx", @_f

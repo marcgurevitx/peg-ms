@@ -252,7 +252,7 @@ testAddCaptureWithoutRuleName = function
 	g = peg.makeGrammar
 	g.addRule "Foo", peg.makeLiteral("foo").withCaptureTag("xxx")
 	
-	g.addCaptureAction "xxx", function(match, subcaptures, arg)
+	g.addCaptureAction "xxx", function(match, subcaptures, arg, ctx)
 		return 42
 	end function
 	
@@ -268,7 +268,7 @@ testAddCaptureWithRuleName = function
 	g = peg.makeGrammar
 	g.addRule "Foo", peg.makeLiteral("foo").withCaptureTag("xxx")
 	
-	g.addCaptureAction "Foo", "xxx", function(match, subcaptures, arg)
+	g.addCaptureAction "Foo", "xxx", function(match, subcaptures, arg, ctx)
 		return 42
 	end function
 	
@@ -284,10 +284,22 @@ testCaptureShortcut = function
 	g = new peg.Grammar
 	g.init "A<-'foo'{xxx}"
 	
-	g.capture "xxx", function(match, subcaptures, arg)
+	g.capture "xxx", function(match, subcaptures, arg, ctx)
 		return match.fragment
 	end function
 	
 	qa.assertEqual g.parse("foo").capture, "foo"
+end function
+
+
+testCaptureAccessSubject = function
+	g = new peg.Grammar
+	g.init "A <- 'a'  'b' {xxx}  'c'"
+	
+	g.capture "xxx", function(match, subcaptures, arg, ctx)
+		return ctx.subject[0] + ctx.subject[-1]
+	end function
+	
+	qa.assertEqual g.parse("abc").capture, "ac"
 end function
 

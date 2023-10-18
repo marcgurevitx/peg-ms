@@ -40,7 +40,7 @@ testMatchCaptureValuesOneCapture = function
 	m3.init 2, 1, "C"
 	m2.addChild m3
 	
-	_capture = function(match, captures, arg)
+	_capture = function(match, captures, arg, ctx)
 		return ([match.fragment] + captures.list).join(" : ")
 	end function
 	m.capture = @_capture
@@ -70,7 +70,7 @@ testMatchCaptureValuesManyCaptures = function
 	m3.init 2, 1, "C"
 	m2.addChild m3
 	
-	_capture = function(match, captures, arg)
+	_capture = function(match, captures, arg, ctx)
 		captures.list.push match.fragment
 		return captures
 	end function
@@ -101,7 +101,7 @@ testMatchCaptureValuesArg = function
 	m3.init 2, 1, "C"
 	m2.addChild m3
 	
-	_capture = function(match, captures, arg)
+	_capture = function(match, captures, arg, ctx)
 		captures.list.push match.fragment + arg
 		return captures
 	end function
@@ -133,7 +133,7 @@ testMatchCaptureValuesError = function
 	m2.addChild m3
 	
 	peg = outer.peg
-	_capture = function(match, captures, arg)
+	_capture = function(match, captures, arg, ctx)
 		error = new peg.Error
 		error.init "error " + match.fragment
 		return error
@@ -171,7 +171,7 @@ testMatchCaptureValuesNoCapturesInPredicates = function
 	m3.init 2, 1, "C"
 	m2.addChild m3
 	
-	_capture = function(match, captures, arg)
+	_capture = function(match, captures, arg, ctx)
 		return ([match.fragment] + captures.list).join(" : ")
 	end function
 	m.capture = @_capture

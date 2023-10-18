@@ -2,7 +2,7 @@
 
 **peg.ms** is a pattern-matching library for [MiniScript](https://miniscript.org/), based on [Parsing Expression Grammars](https://en.wikipedia.org/wiki/Parsing_expression_grammar) (PEGs).
 
-(To debug or pretty print large objects there is a `._str` method implemented for each class.)
+(To debug or pretty print large objects there is a `._str` method implemented for almost each class.)
 
 (The examples use `import "peg"` for simple looks. Use `ensureImport` to avoid rebuilding `pegGrammar`.)
 
@@ -19,7 +19,7 @@ listOfNumbers.init  "list   :  '[' space number (',' space number)* space ']' " 
                     "number <- ([+-]? [0-9]+) {tonumber} " +
                     "space  <- ' '* "
 
-listOfNumbers.capture "tonumber", function(match, subcaptures, arg)
+listOfNumbers.capture "tonumber", function(match, subcaptures, arg, ctx)
 	return match.fragment.val
 end function
 
@@ -225,7 +225,7 @@ import "peg"
 g = new peg.Grammar
 g.init "A <- 'a' {} + {slashes}"
 
-g.capture "slashes", function(_,subs,_)
+g.capture "slashes", function(_,subs,_,_)
 	return subs.list.join("/")
 end function
 
@@ -240,6 +240,7 @@ In the example above we only use the second parameter to the callback (`subs`). 
 | `match` | `Match` | matched portion of the subject |
 | `subcaptures` | `{"list":..., "map":...}` | values captured by the subpatterns |
 | `arg` | | optional third parameter to `.parse` |
+| `ctx` | `ParseContext` | collection of data associated with current call to `.parse` |
 
 The return value of the callback becomes the sole capture inside `captures.list` (all other subcaptures from `subs.list` and `subs.map` get dropped). If it's desired to keep the subcaptures, then instead of returning a capture, modify `subs` in place **AND** return the very `subs` object:
 
@@ -248,7 +249,7 @@ import "peg"
 g = new peg.Grammar
 g.init "A <- 'a' {} + {slashes}"
 
-g.capture "slashes", function(_,subs,_)
+g.capture "slashes", function(_,subs,_,_)
 	subs.list.push subs.list.join("/")
 	return subs
 end function
@@ -264,7 +265,7 @@ import "peg"
 g = new peg.Grammar
 g.init "A <- 'a'+{crash}"
 
-g.capture "crash", function(match,_,_)
+g.capture "crash", function(match,_,_,_)
 	error = new peg.Error
 	error.init "message - " + match.fragment
 	return error
@@ -330,7 +331,7 @@ g = new peg.Grammar
 g.init "A <- 'a'  'b' <brackets>  'c'"
 
 g.matchTime "brackets", function(match,_,_,_)
-	match.capture = function(_,_,_)
+	match.capture = function(_,_,_,_)
 		return "[" + match.fragment + "]"
 	end function
 	return match
@@ -439,7 +440,7 @@ addNumbers = new peg.Grammar
 addNumbers.init "  number      <-  [0-9]+ {}  " +
                 "  addNumbers  :   ( number  ( ','  number ) * ) {add}  "
 
-addNumbers.capture "add", function(match, subcaptures, arg)
+addNumbers.capture "add", function(match, subcaptures, arg, ctx)
 	add = 0
 	for s in subcaptures.list
 		add += s.val
@@ -462,7 +463,7 @@ stringUpper = new peg.Grammar
 stringUpper.init    "  name         <-  [a-z]+ {str:}  " +
                     "  stringUpper  :   ( name  '^' {up:} ? ) {upper}  "
 
-stringUpper.capture "upper", function(match, subcaptures, arg)
+stringUpper.capture "upper", function(match, subcaptures, arg, ctx)
 	s = subcaptures.map.str
 	if subcaptures.map.hasIndex("up") then s = s.upper
 	return s
@@ -489,7 +490,7 @@ nameValueList.init  "  space  <-  [ \t\n\r] *  " +
                     "  pair   <-  ( name  '='  space  name  sep ? )  " +
                     "  list   :   pair * {list}  "
 
-nameValueList.capture "list", function(match, subcaptures, arg)
+nameValueList.capture "list", function(match, subcaptures, arg, ctx)
 	vals = {}
 	for i in range(0, subcaptures.list.len - 1, 2)
 		vals[subcaptures.list[i]] = subcaptures.list[i + 1]
@@ -546,7 +547,7 @@ searchForPatt = new peg.Grammar
 searchForPatt.init  "  pattern  <-  $  " +
                     "  search   :   pattern {patt}  /  .  search  "
 
-searchForPatt.capture "patt", function(match, subcaptures, arg)
+searchForPatt.capture "patt", function(match, subcaptures, arg, ctx)
 	return [match.start, match.start + match.length]
 end function
 
@@ -587,7 +588,7 @@ gsubGrammar = new peg.Grammar
 gsubGrammar.init    "  pattern  <-  $  " +
                     "  gsub     :   ( ( pattern {sub}  /  . {} ) * )  "
 
-gsubGrammar.capture "sub", function(match, subcaptures, arg)
+gsubGrammar.capture "sub", function(match, subcaptures, arg, ctx)
 	return arg.repl
 end function
 
@@ -615,7 +616,7 @@ csvGrammar.init "  quot     <-  [""]  " +
                 "  field    <-  qstr  /  str  " +
                 "  record   :   field  ( ','  field ) *  ( newline  /  !. )  "
 
-csvGrammar.capture "qstr", function(match, subcaptures, arg)
+csvGrammar.capture "qstr", function(match, subcaptures, arg, ctx)
 	return match.fragment.replace("""" + """", """")
 end function
 
@@ -674,7 +675,7 @@ arithExp.init   "  Space     <-  [ " + char(9) + char(10) + char(13) + "] *  " +
                 "  Term      <-  ( Factor  ( FactorOp  Factor ) * ) {eval}   " +
                 "  Factor    <-  Number  /  Open  Exp  Close                 "
 
-arithExp.capture "eval", function(match, subcaptures, arg)
+arithExp.capture "eval", function(match, subcaptures, arg, ctx)
 	_val = function(x)
 		if x isa string then return x.val else return x
 	end function
