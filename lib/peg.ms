@@ -131,6 +131,7 @@ end function
 // Error: Base class for syntax and semantic errors.
 Error = {}
 Error._name = "Error"
+Error.tag = null
 Error.message = null
 
 
@@ -1123,17 +1124,21 @@ ParseContext.getFlag = function(index, flagName)
 	flagStack = { "_flag": false }
 	for i in self.flags.indexes.sort
 		if i > index then break
-		pattern = self.flags[i]
-		if pattern.flag != flagName then continue
-		if pattern.action == flagAction.setTrue then
-			flagStack = { "_flag": true, "prevStack": flagStack }
-		else if pattern.action == flagAction.setFalse then
-			flagStack = { "_flag": false, "prevStack": flagStack }
-		else if pattern.action == flagAction.unset then
-			flagStack = flagStack.prevStack
-		else
-			abort "Unknown flag action: `" + pattern.action + "`"
-		end if
+		patterns = self.flags[i]
+		for p in patterns
+			if p.flag != flagName then continue
+			if p.action == flagAction.setTrue then
+				flagStack = { "_flag": true, "prevStack": flagStack }
+			else if p.action == flagAction.setFalse then
+				flagStack = { "_flag": false, "prevStack": flagStack }
+			end if
+		end for
+		for p in patterns
+			if p.flag != flagName then continue
+			if p.action == flagAction.unset and flagStack.hasIndex("prevStack") then
+				flagStack = flagStack.prevStack
+			end if
+		end for
 	end for
 	return flagStack._flag
 end function
@@ -1559,7 +1564,8 @@ end function
 
 // _matchSyntaxLogic: Registers a position flag (and always succeeds).
 PositionFlag._matchSyntaxLogic = function(ctx, arg=null)
-	ctx.flags[ctx.index] = self
+	if ctx.flags.get(ctx.index) == null then ctx.flags[ctx.index] = []
+	ctx.flags[ctx.index].push self
 	match = new Match
 	match.init ctx.index, 0, "", self
 	return match

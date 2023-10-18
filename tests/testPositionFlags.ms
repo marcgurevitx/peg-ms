@@ -163,3 +163,65 @@ testPositionFlagsNested2 = function
 	qa.assertEqual arg.foo, [0, 1, 1, 0, 1, 1, 0]
 end function
 
+
+testPositionFlagsUnbalanced = function
+	g = new peg.Grammar
+	g.init "_:  'a'  (/foo)  'b' <xxx>"
+	
+	_xxx = function(match, subcaptures, arg, ctx)
+		if match != null then arg.foo.push ctx.getFlag(match.start, "foo")
+		return match
+	end function
+	g.matchTime "xxx", @_xxx
+	
+	text = "ab"
+	arg = {}
+	arg.foo = []
+	res = g.parse(text, 0, arg)
+	qa.assertEqual res.length, 2
+	qa.assertEqual arg.foo, [0]
+end function
+
+
+testPositionFlagsAnnihilation = function
+	g = new peg.Grammar
+	g.init "_:  'a'  (+foo)  (/foo)  'b' <xxx>"
+	
+	_xxx = function(match, subcaptures, arg, ctx)
+		if match != null then arg.foo.push ctx.getFlag(match.start, "foo")
+		return match
+	end function
+	g.matchTime "xxx", @_xxx
+	
+	text = "ab"
+	arg = {}
+	arg.foo = []
+	res = g.parse(text, 0, arg)
+	qa.assertEqual res.length, 2
+	qa.assertEqual arg.foo, [0]
+end function
+
+
+testPositionFlagsClash = function
+	g = new peg.Grammar
+	g.init "_:  'a'  (+foo)  (+bar)  'b' <xxx>"
+	
+	_xxx = function(match, subcaptures, arg, ctx)
+		if match != null then
+			arg.foo.push ctx.getFlag(match.start, "foo")
+			arg.bar.push ctx.getFlag(match.start, "bar")
+		end if
+		return match
+	end function
+	g.matchTime "xxx", @_xxx
+	
+	text = "ab"
+	arg = {}
+	arg.foo = []
+	arg.bar = []
+	res = g.parse(text, 0, arg)
+	qa.assertEqual res.length, 2
+	qa.assertEqual arg.foo, [1]
+	qa.assertEqual arg.bar, [1]
+end function
+
