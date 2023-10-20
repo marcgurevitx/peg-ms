@@ -330,13 +330,13 @@ Pattern.matchSyntax = function(ctx, arg=null)
 	match = self._matchSyntaxLogic(ctx, arg)
 	
 	if self.matchTimeTag != null then
-		if ctx.grammar != null then
+		if self.matchTimeTag.endsWith("!") then
+			tag = self.matchTimeTag[:-1]
+			if match == null then ctx.addSyntaxError tag, tag
+		else if ctx.grammar != null then
 			action = ctx.grammar.findMatchTimeAction(ctx.ruleName, self.matchTimeTag)
-		else
-			action = self.matchTimeTag
-		end if
-		if @action isa funcRef then
-			subcaptures = function
+			if @action == null then abort "Match-time action not defined for <" + self.matchTimeTag + ">"
+			subcapturesFunc = function
 				if match == null then return {"list": [], "map": {}}
 				caps = ctx.getSubcaptures(match)
 				if caps == null then
@@ -345,10 +345,10 @@ Pattern.matchSyntax = function(ctx, arg=null)
 				end if
 				return caps
 			end function
-			match = action(match, @subcaptures, arg, ctx)
-			if match != null and not match isa Match then abort "Bad return value from match-time action: expected null or Match, got `" + match + "`"
-		else if match == null then
-			ctx.addSyntaxError self.matchTimeTag, action
+			match = action(match, @subcapturesFunc, arg, ctx)
+			if match != null and not match isa Match then abort "Bad return value from match-time action `" + self.matchTimeTag + "`: expected null or Match, got `" + match + "`"
+		else
+			abort "No grammar to search for match-time action `" + self.matchTimeTag + "`"
 		end if
 	end if
 	
@@ -1727,7 +1727,7 @@ _makePegGrammar = function
 	
 	// CharClass
 	
-	_charClassPeg = "'\['  ( ( ! '\]'  ( Escape  /  ( .  '-'  ! '\]'  . ) {}  /  . {} ) ) + <noElems> ) {charClass}  '\]' <noClosing>  Space"
+	_charClassPeg = "'\['  ( ( ! '\]'  ( Escape  /  ( .  '-'  ! '\]'  . ) {}  /  . {} ) ) + <noElems!> ) {charClass}  '\]' <noClosingSquareBracket!>  Space"
 	
 	g.addRule "CharClass",
 		makeConcat([
@@ -1748,9 +1748,9 @@ _makePegGrammar = function
 							]).withCaptureTag,
 							makeAnyChar.withCaptureTag,
 						]),
-					])).withMatchTimeTag("noElems"),
+					])).withMatchTimeTag("noElems!"),
 			]).withCaptureTag("charClass"),
-			makeLiteral("]").withMatchTimeTag("noClosing"),
+			makeLiteral("]").withMatchTimeTag("noClosingSquareBracket!"),
 			makeRuleRef("Space"),
 		])
 	
@@ -1774,7 +1774,7 @@ _makePegGrammar = function
 	
 	// Literal
 	
-	_literalPeg = "( '\''  ( ! '\''  ( Escape  /  . {} ) ) * {literal}  '\'' <noClosing>  /  '\""'  ( ! '\""'  ( Escape  /  . {} ) ) * {literal}  '\""' <noClosing> )  Space"
+	_literalPeg = "( '\''  ( ! '\''  ( Escape  /  . {} ) ) * {literal}  '\'' <noClosingSingleQuote!>  /  '\""'  ( ! '\""'  ( Escape  /  . {} ) ) * {literal}  '\""' <noClosingDoubleQuote!> )  Space"
 	
 	g.addRule "Literal",
 		makeConcat([
@@ -1790,7 +1790,7 @@ _makePegGrammar = function
 								makeAnyChar.withCaptureTag,
 							]),
 						])).withCaptureTag("literal"),
-					makeLiteral("'").withMatchTimeTag("noClosing"),
+					makeLiteral("'").withMatchTimeTag("noClosingSingleQuote!"),
 				]),
 				makeConcat([
 					makeLiteral(""""),
@@ -1803,7 +1803,7 @@ _makePegGrammar = function
 								makeAnyChar.withCaptureTag,
 							]),
 						])).withCaptureTag("literal"),
-					makeLiteral("""").withMatchTimeTag("noClosing"),
+					makeLiteral("""").withMatchTimeTag("noClosingDoubleQuote!"),
 				]),
 			]),
 			makeRuleRef("Space"),
@@ -1873,22 +1873,26 @@ _makePegGrammar = function
 	
 	// MatchTimeTag
 	
-	_matchTimeTagPeg = "'<'  Space  Identifier ? {matchTimeTag}  '>' <noClosing>  Space"
+	_matchTimeTagPeg = "'<'  Space  ( Identifier  [!] ? {} ) ? {matchTimeTag}  '>' <noClosingChevron!>  Space"
 	
 	g.addRule "MatchTimeTag",
 		makeConcat([
 			makeLiteral("<"),
 			makeRuleRef("Space"),
 			makeOptional(
-				makeRuleRef("Identifier")).withCaptureTag("matchTimeTag"),
-			makeLiteral(">").withMatchTimeTag("noClosing"),
+				makeConcat([
+					makeRuleRef("Identifier"),
+					makeOptional(
+						makeCharSet("!")).withCaptureTag,
+				])).withCaptureTag("matchTimeTag"),
+			makeLiteral(">").withMatchTimeTag("noClosingChevron!"),
 			makeRuleRef("Space"),
 		])
 	
 	g.getRulePattern("MatchTimeTag")._DEBUG_PEG = _matchTimeTagPeg
 	
 	_matchTimeTagSemantics = function(match, subcaptures, arg, ctx)
-		if subcaptures.list.len == 0 then tag = "" else tag = subcaptures.list[-1]
+		tag = subcaptures.list.join("")
 		return "<" + tag
 	end function
 	g.addCaptureAction "matchTimeTag", @_matchTimeTagSemantics
@@ -1896,7 +1900,7 @@ _makePegGrammar = function
 	
 	// CaptureTag
 	
-	_captureTagPeg = "'{'  Space  ( Identifier  ( [:]  ( [-] ?  [0-9] + ) ? ) ? {} ) ? {captureTag}  '}' <noClosing>  Space"
+	_captureTagPeg = "'{'  Space  ( Identifier  ( [:]  ( [-] ?  [0-9] + ) ? ) ? {} ) ? {captureTag}  '}' <noClosingBrace!>  Space"
 	
 	g.addRule "CaptureTag",
 		makeConcat([
@@ -1917,7 +1921,7 @@ _makePegGrammar = function
 								])),
 						])).withCaptureTag,
 				])).withCaptureTag("captureTag"),
-			makeLiteral("}").withMatchTimeTag("noClosing"),
+			makeLiteral("}").withMatchTimeTag("noClosingBrace!"),
 			makeRuleRef("Space"),
 		])
 	
@@ -1976,7 +1980,7 @@ _makePegGrammar = function
 	
 	// PositionFlag
 	
-	_positionFlagPeg = "( '('  [+/-] {}  Space  Identifier <noIdentifier>  ')' <noClosing> ) {positionFlag}  Space"
+	_positionFlagPeg = "( '('  [+/-] {}  Space  Identifier <noIdentifier!>  ')' <noClosingParen!> ) {positionFlag}  Space"
 	
 	g.addRule "PositionFlag",
 		makeConcat([
@@ -1984,8 +1988,8 @@ _makePegGrammar = function
 				makeLiteral("("),
 				makeCharSet("+/-").withCaptureTag,
 				makeRuleRef("Space"),
-				makeRuleRef("Identifier").withMatchTimeTag("noIdentifier"),
-				makeLiteral(")").withMatchTimeTag("noClosing"),
+				makeRuleRef("Identifier").withMatchTimeTag("noIdentifier!"),
+				makeLiteral(")").withMatchTimeTag("noClosingParen!"),
 			]).withCaptureTag("positionFlag"),
 			makeRuleRef("Space"),
 		])
@@ -2004,7 +2008,7 @@ _makePegGrammar = function
 	
 	// Alternative
 	
-	_alternativePeg = "( ( [!&] {}  Space  WithSuffix <noPattern> ) {prefixed}  /  WithSuffix  /  PositionFlag ) + {concat}"
+	_alternativePeg = "( ( [!&] {}  Space  WithSuffix <noPattern!> ) {prefixed}  /  WithSuffix  /  PositionFlag ) + {concat}"
 	
 	g.addRule "Alternative",
 		makeOneOrMore(
@@ -2012,7 +2016,7 @@ _makePegGrammar = function
 				makeConcat([
 					makeCharSet("!&").withCaptureTag,
 					makeRuleRef("Space"),
-					makeRuleRef("WithSuffix").withMatchTimeTag("noPattern"),
+					makeRuleRef("WithSuffix").withMatchTimeTag("noPattern!"),
 				]).withCaptureTag("prefixed"),
 				makeRuleRef("WithSuffix"),
 				makeRuleRef("PositionFlag"),
@@ -2042,7 +2046,7 @@ _makePegGrammar = function
 	
 	// Pattern
 	
-	_patternPeg = "( Alternative  ( '/'  Space  Alternative <noAlternative> ) * ) {alternatives}"
+	_patternPeg = "( Alternative  ( '/'  Space  Alternative <noAlternative!> ) * ) {alternatives}"
 	
 	g.addRule "Pattern",
 		makeConcat([
@@ -2051,7 +2055,7 @@ _makePegGrammar = function
 				makeConcat([
 					makeLiteral("/"),
 					makeRuleRef("Space"),
-					makeRuleRef("Alternative").withMatchTimeTag("noAlternative"),
+					makeRuleRef("Alternative").withMatchTimeTag("noAlternative!"),
 				])),
 		]).withCaptureTag("alternatives")
 	
@@ -2065,7 +2069,7 @@ _makePegGrammar = function
 	
 	// Definition
 	
-	_definitionPeg = "Identifier  ( ( '<-'  /  [:] ) <noArrowOrColon> ) {}  Space  ( Pattern  /  '$' {}  Space  ( & Definition  /  ! . ) <notNextDef> ) <noRulePattern>"
+	_definitionPeg = "Identifier  ( ( '<-'  /  [:] ) <noArrowOrColon!> ) {}  Space  ( Pattern  /  '$' {}  Space  ( & Definition  /  ! . ) <noNextDef!> ) <noRulePattern!>"
 	
 	g.addRule "Definition",
 		makeConcat([
@@ -2074,7 +2078,7 @@ _makePegGrammar = function
 				makeChoice([
 					makeLiteral("<-"),
 					makeCharSet(":"),
-				]).withMatchTimeTag("noArrowOrColon"),
+				]).withMatchTimeTag("noArrowOrColon!"),
 			]).withCaptureTag,
 			makeRuleRef("Space"),
 			makeChoice([
@@ -2087,9 +2091,9 @@ _makePegGrammar = function
 							makeRuleRef("Definition")),
 						makeNot(
 							makeAnyChar),
-					]).withMatchTimeTag("notNextDef"),
+					]).withMatchTimeTag("noNextDef!"),
 				]),
-			]).withMatchTimeTag("noRulePattern"),
+			]).withMatchTimeTag("noRulePattern!"),
 		])
 	
 	g.getRulePattern("Definition")._DEBUG_PEG = _definitionPeg
@@ -2097,17 +2101,17 @@ _makePegGrammar = function
 	
 	// Grammar
 	
-	_grammarPeg = "Space  ( Definition + <noRuleDefs> ) {ruleDefs}  ( ! . ) <noEos>"
+	_grammarPeg = "Space  ( Definition + <noRuleDefs!> ) {ruleDefs}  ( ! . ) <noEos!>"
 	
 	g.addRule "Grammar",
 		makeConcat([
 			makeRuleRef("Space"),
 			makeConcat([
 				makeOneOrMore(
-					makeRuleRef("Definition")).withMatchTimeTag("noRuleDefs"),
+					makeRuleRef("Definition")).withMatchTimeTag("noRuleDefs!"),
 			]).withCaptureTag("ruleDefs"),
 			makeNot(
-				makeAnyChar).withMatchTimeTag("noEos"),
+				makeAnyChar).withMatchTimeTag("noEos!"),
 		])
 	
 	g.getRulePattern("Grammar")._DEBUG_PEG = _grammarPeg

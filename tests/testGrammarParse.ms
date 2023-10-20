@@ -39,7 +39,7 @@ end function
 
 testGrammarParseSyntaxError = function
 	_p = peg.makeLiteral("foo")
-	_p.matchTimeTag = "xxx"
+	_p.matchTimeTag = "xxx!"
 	
 	g = peg.makeGrammar
 	g.addRule "Foo", _p
@@ -61,14 +61,14 @@ testGrammarParseSyntaxError = function
 	
 	res = g.parse("foo")
 	qa.assertEqual res.match._str,  "Match(0, 3, foo, Grammar(Foo))" + _NL +
-	                                " Match(0, 3, foo, Literal(foo) <xxx>)"
+	                                " Match(0, 3, foo, Literal(foo) <xxx!>)"
 	qa.assertEqual res.length, 3
 	qa.assertEqual res.errors, []
 	qa.assertEqual res.captures.list, []
 	
 	res = g.parse("  foo", 2)
 	qa.assertEqual res.match._str,  "Match(2, 3, foo, Grammar(Foo))" + _NL +
-	                                " Match(2, 3, foo, Literal(foo) <xxx>)"
+	                                " Match(2, 3, foo, Literal(foo) <xxx!>)"
 	qa.assertEqual res.length, 3
 	qa.assertEqual res.errors, []
 	qa.assertEqual res.captures.list, []

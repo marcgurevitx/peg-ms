@@ -6,7 +6,7 @@ _NL = peg._NL
 
 testAnyCharSyntaxError = function
 	p = peg.makeAnyChar
-	p.matchTimeTag = "xxx"
+	p.matchTimeTag = "xxx!"
 	
 	ctx = peg.makeParseContext("abc", 3)
 	ctx.ruleName = "Foo"
@@ -21,7 +21,7 @@ end function
 
 testCharSetSyntaxError = function
 	p = peg.makeCharSet("abc")
-	p.matchTimeTag = "xxx"
+	p.matchTimeTag = "xxx!"
 	
 	ctx = peg.makeParseContext("abcx", 3)
 	ctx.ruleName = "Foo"
@@ -36,7 +36,7 @@ end function
 
 testCharRangeSyntaxError = function
 	p = peg.makeCharRange("a", "c")
-	p.matchTimeTag = "xxx"
+	p.matchTimeTag = "xxx!"
 	
 	ctx = peg.makeParseContext("abcx", 3)
 	ctx.ruleName = "Foo"
@@ -51,7 +51,7 @@ end function
 
 testLiteralSyntaxError = function
 	p = peg.makeLiteral("foo")
-	p.matchTimeTag = "xxx"
+	p.matchTimeTag = "xxx!"
 	
 	ctx = peg.makeParseContext("abcx", 3)
 	ctx.ruleName = "Foo"
@@ -67,7 +67,7 @@ end function
 testAndSyntaxError = function
 	p = peg.makeAnd(
 		peg.makeLiteral("foo"))
-	p.matchTimeTag = "xxx"
+	p.matchTimeTag = "xxx!"
 	
 	ctx = peg.makeParseContext("abcx", 3)
 	ctx.ruleName = "Foo"
@@ -82,7 +82,7 @@ end function
 
 testAndNoSubpatternSyntaxError = function
 	_p = peg.makeLiteral("foo")
-	_p.matchTimeTag = "xxx"
+	_p.matchTimeTag = "xxx!"
 	
 	p = peg.makeAnd(_p)
 	
@@ -99,7 +99,7 @@ end function
 testNotSyntaxError = function
 	p = peg.makeNot(
 		peg.makeLiteral("foo"))
-	p.matchTimeTag = "xxx"
+	p.matchTimeTag = "xxx!"
 	
 	ctx = peg.makeParseContext("abcfoo", 3)
 	ctx.ruleName = "Foo"
@@ -114,7 +114,7 @@ end function
 
 testNotNoSubpatternSyntaxError = function
 	_p = peg.makeLiteral("foo")
-	_p.matchTimeTag = "xxx"
+	_p.matchTimeTag = "xxx!"
 	
 	p = peg.makeNot(_p)
 	
@@ -133,7 +133,7 @@ testChoiceSyntaxError = function
 		peg.makeLiteral("foo"),
 		peg.makeLiteral("bar"),
 		peg.makeLiteral("baz")])
-	p.matchTimeTag = "xxx"
+	p.matchTimeTag = "xxx!"
 	
 	ctx = peg.makeParseContext("abcx", 3)
 	ctx.ruleName = "Foo"
@@ -151,7 +151,7 @@ testConcatSyntaxError = function
 		peg.makeLiteral("foo"),
 		peg.makeLiteral("bar"),
 		peg.makeLiteral("baz")])
-	p.matchTimeTag = "xxx"
+	p.matchTimeTag = "xxx!"
 	
 	ctx = peg.makeParseContext("abcx", 3)
 	ctx.ruleName = "Foo"
@@ -167,7 +167,7 @@ end function
 testOneOrMoreSyntaxError = function
 	p = peg.makeOneOrMore(
 		peg.makeLiteral("foo"))
-	p.matchTimeTag = "xxx"
+	p.matchTimeTag = "xxx!"
 	
 	ctx = peg.makeParseContext("abcx", 3)
 	ctx.ruleName = "Foo"
@@ -184,7 +184,7 @@ testGrammarSyntaxError = function
 	g = peg.makeGrammar
 	g.addRule "Foo", peg.makeLiteral("foo")
 	g.setDefaultRule "Foo"
-	g.matchTimeTag = "xxx"
+	g.matchTimeTag = "xxx!"
 	
 	ctx = peg.makeParseContext("abcx", 3)
 	ctx.ruleName = "Bar"
@@ -203,7 +203,7 @@ testRuleRefSyntaxError = function
 	_g.setDefaultRule "Foo"
 	
 	p = peg.makeRuleRef("Foo")
-	p.matchTimeTag = "xxx"
+	p.matchTimeTag = "xxx!"
 	
 	ctx = peg.makeParseContext("abcx", 3)
 	ctx.ruleName = "Bar"
@@ -224,7 +224,11 @@ testCustomSyntaxError = function
 	g = peg.makeGrammar
 	g.addRule "Foo", _p
 	g.setDefaultRule "Foo"
-	g.addMatchTimeAction "xxx", "Foo failed"
+	
+	g.addMatchTimeAction "xxx", function(match,_,_,ctx)
+		if match == null then ctx.addSyntaxError "xxx", "Foo failed"
+		return match
+	end function
 	
 	ctx = peg.makeParseContext("x", 0)
 	m = g.matchSyntax(ctx)
@@ -242,7 +246,11 @@ testCustomSyntaxErrorWithRuleName = function
 	g = peg.makeGrammar
 	g.addRule "Foo", _p
 	g.setDefaultRule "Foo"
-	g.addMatchTimeAction "Foo", "xxx", "Foo failed"
+	
+	g.addMatchTimeAction "xxx", function(match,_,_,ctx)
+		if match == null then ctx.addSyntaxError "xxx", "Foo failed"
+		return match
+	end function
 	
 	ctx = peg.makeParseContext("x", 0)
 	m = g.matchSyntax(ctx)

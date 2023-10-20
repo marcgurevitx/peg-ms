@@ -57,12 +57,15 @@ Additionally, the library supports some nonstandard syntax:
 
 | Syntax | Description | Precedence |
 | --- | --- | --- |
-| `p {name}` | capture | 4 |
+| `p {}` | anonymous capture | 4 |
+| `p {name}` | function capture | 4 |
+| `p {name:}` | key capture | 4 |
 | `p <name>` | match-time action | 4 |
+| `p <name!>` | match-time error | 4 |
 | `name <- $` | dynamic inclusion rule | |
 | `name : p` | default initial rule | |
 
-Suffixes `{}` and `<>` have the same precedence as `?*+`.
+Suffixes `{…}` and `<…>` have the same precedence as `?*+`.
 
 
 ## API highlight
@@ -307,7 +310,7 @@ Unlike in function captures, the parameter `match` may be `null`, so check befor
 
 The return value determines whether the _match_ succeeds or fails: returning `null` means failure and returning a `Match` objects means success (it doesn't have to be the same match object as in the `match` parameter). Even if `null` is returned and thus the match fails, the parsing itself doesn't stop because failure of a pattern doesn't yet mean failure of the whole grammar.
 
-Still, if it's desired to signal an error, it can be pushed into `ctx.errors` or passed to `ctx.addSyntaxError(NAME, MESSAGE)`:
+Still, if it's desired to signal an error, it can be pushed into `ctx.syntaxErrors` or passed to `ctx.addSyntaxError(NAME, MESSAGE)`:
 
 ```
 import "peg"
@@ -341,7 +344,7 @@ result = g.parse("abc")
 print result.capture  // "[b]"
 ```
 
-When no match-time callback is defined for `name`, the suffix `<name>` acts as a shortcut for "report syntax error if the pattern fails".
+A form with an exclamation mark (`<name!>`) is a shortcut for "report syntax error if the pattern fails". You don't have to define a callback.
 
 It's not necessary to use a PEG string to create a grammar. It's possible to build the grammar from library level classes:
 
