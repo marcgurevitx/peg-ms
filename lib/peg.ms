@@ -1,5 +1,8 @@
 // Pattern-matching library for MiniScript.
 
+msVersion = @version
+version = "0.0.1"
+
 
 // ensureImport: Imports module and caches it in globals.
 if globals.hasIndex("ensureImport") then
@@ -20,7 +23,7 @@ ensureImport "mapUtil"
 ensureImport "stringUtil"
 
 
-if version.hostName == "Mini Micro" then _NL = char(13) else _NL = char(10)
+if msVersion.hostName == "Mini Micro" then _NL = char(13) else _NL = char(10)
 
 
 maxErrorFragment = 20
