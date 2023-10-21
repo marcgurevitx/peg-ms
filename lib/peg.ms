@@ -1557,7 +1557,7 @@ end function
 
 
 PositionFlag.nodeToStr = function
-	s = flagAction.toString[self.action]
+	s = flagAction.toString(self.action)
 	return "PositionFlag(" + s + self.flag + ")"
 end function
 
@@ -1573,7 +1573,7 @@ end function
 
 
 PositionFlag.generatePegString = function
-	s = flagAction.toString[self.action]
+	s = flagAction.toString(self.action)
 	return "(" + s + self.flag + ")"
 end function
 

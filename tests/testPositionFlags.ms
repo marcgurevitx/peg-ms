@@ -225,3 +225,20 @@ testPositionFlagsClash = function
 	qa.assertEqual arg.bar, [1]
 end function
 
+
+testPositionFlagsGeneratePeg = function
+	g = new peg.Grammar
+	g.init "  _ :   (+foo)  (-bar)  (/baz)  "
+	qa.assertEqual g.generatePegString, "  _  :   (+foo)  (-bar)  (/baz)  "
+end function
+
+
+testPositionFlagsToString = function
+	g = new peg.Grammar
+	g.init "  _ :   (+foo)  (-bar)  (/baz)  "
+	qa.assertEqual g.getRulePattern("_")._str,  "Concat()"  + _NL +
+	                                            " PositionFlag(+foo)"   + _NL +
+	                                            " PositionFlag(-bar)"   + _NL +
+	                                            " PositionFlag(/baz)"
+end function
+
