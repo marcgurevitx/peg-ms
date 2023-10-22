@@ -77,7 +77,7 @@ end if
 // Tree: Abstract tree class.
 // Base class for Pattern and Match.
 Tree = {}
-Tree._name = "Tree"
+Tree._name = "peg.Tree"
 Tree._inited = false
 Tree.children = null
 
@@ -133,7 +133,7 @@ end function
 
 // Error: Base class for syntax and semantic errors.
 Error = {}
-Error._name = "Error"
+Error._name = "peg.Error"
 Error.tag = null
 Error.message = null
 
@@ -157,7 +157,7 @@ end function
 
 // SyntaxError: Errors at matching time.
 SyntaxError = new Error
-SyntaxError._name = "SyntaxError"
+SyntaxError._name = "peg.SyntaxError"
 
 
 SyntaxError.init = function(ruleName, start, index, fragment, rest, tag, _message=null)
@@ -195,7 +195,7 @@ end function
 
 // SemanticError: Errors raised by capture functions.
 SemanticError = new Error
-SemanticError._name = "SemanticError"
+SemanticError._name = "peg.SemanticError"
 
 
 makeSemanticError = function(message)
@@ -208,7 +208,7 @@ end function
 // Match: Result of matching a subject with a pattern.
 // If the pattern has subpatterns, their individual matches are stored in children subnodes.
 Match = new Tree
-Match._name = "Match"
+Match._name = "peg.Match"
 Match.start = null
 Match.length = null
 Match.fragment = null
@@ -283,7 +283,7 @@ end function
 // Pattern: Base class for patterns -- the grammar elements that match particular syntax.
 // If the pattern has subpatterns, they're stored as children nodes.
 Pattern = new Tree
-Pattern._name = "Pattern"
+Pattern._name = "peg.Pattern"
 Pattern.matchTimeTag = null
 Pattern.captureTag = null
 
@@ -438,7 +438,7 @@ end function
 // AnyChar: Pattern that matches a single character:  .
 // Fails on empty lines or after end of line.
 AnyChar = new Pattern
-AnyChar._name = "AnyChar"
+AnyChar._name = "peg.AnyChar"
 
 
 AnyChar.nodeToStr = function
@@ -472,7 +472,7 @@ end function
 
 // CharSet: Pattern that matches one character from a character set:  [abc]
 CharSet = new Pattern
-CharSet._name = "CharSet"
+CharSet._name = "peg.CharSet"
 CharSet.characters = null
 
 
@@ -525,7 +525,7 @@ end function
 
 // CharRange: Pattern that matches one character from a character range:  [a-z]
 CharRange = new Pattern
-CharRange._name = "CharRange"
+CharRange._name = "peg.CharRange"
 CharRange.from = null
 CharRange.to = null
 
@@ -577,7 +577,7 @@ end function
 
 // Literal: Pattern that matches an exact string:  'foo' or "foo"
 Literal = new Pattern
-Literal._name = "Literal"
+Literal._name = "peg.Literal"
 Literal.string_ = null
 
 
@@ -627,7 +627,7 @@ end function
 // And: Pattern that succeeds if its subpattern succeeds (AND-predicate):  & PATT
 // It doesn't consume input and doesn't produce capture values.
 And = new Pattern
-And._name = "And"
+And._name = "peg.And"
 
 
 And.init = function(pattern)
@@ -683,7 +683,7 @@ end function
 // Not: Pattern that succeeds if its subpattern fails (NOT-predicate):  ! PATT
 // It doesn't consume characters and doesn't produce capture values.
 Not = new Pattern
-Not._name = "Not"
+Not._name = "peg.Not"
 
 
 Not.init = function(pattern)
@@ -737,7 +737,7 @@ end function
 
 // Choice: Pattern that succeeds if one of its subpatterns succeeds:  PATT1  /  PATT2  /  ...
 Choice = new Pattern
-Choice._name = "Choice"
+Choice._name = "peg.Choice"
 
 
 Choice.init = function(patterns)
@@ -823,7 +823,7 @@ end function
 
 // Concat: Pattern that succeeds if all its subpatterns match in succession:  PATT1  PATT2  ...
 Concat = new Pattern
-Concat._name = "Concat"
+Concat._name = "peg.Concat"
 
 
 Concat.init = function(patterns)
@@ -902,7 +902,7 @@ end function
 
 // Optional: Pattern that succeeds if one or zero occurrences of its subpattern match:  PATT ?
 Optional = new Pattern
-Optional._name = "Optional"
+Optional._name = "peg.Optional"
 
 
 Optional.init = function(pattern)
@@ -952,7 +952,7 @@ end function
 
 // ZeroOrMore: Pattern that succeeds if zero or more occurrences of its subpattern match:  PATT *
 ZeroOrMore = new Pattern
-ZeroOrMore._name = "ZeroOrMore"
+ZeroOrMore._name = "peg.ZeroOrMore"
 
 
 ZeroOrMore.init = function(pattern)
@@ -1011,7 +1011,7 @@ end function
 
 // OneOrMore: Pattern that succeeds if one or more occurrences of its subpattern match:  PATT +
 OneOrMore = new Pattern
-OneOrMore._name = "OneOrMore"
+OneOrMore._name = "peg.OneOrMore"
 
 
 OneOrMore.init = function(pattern)
@@ -1073,7 +1073,7 @@ end function
 
 // ParseContext: Collection of data associated with a single call to `Grammar.parse`.
 ParseContext = {}
-ParseContext._name = "ParseContext"
+ParseContext._name = "peg.ParseContext"
 ParseContext.cachedSubcaptures = null
 ParseContext.grammar = null
 ParseContext.index = null
@@ -1164,7 +1164,7 @@ end function
 
 // ParseResult: Collection of data that represents the result of a call to `Grammar.parse`.
 ParseResult = {}
-ParseResult._name = "ParseResult"
+ParseResult._name = "peg.ParseResult"
 ParseResult.match = null
 ParseResult.length = null
 ParseResult.errors = null
@@ -1223,9 +1223,9 @@ end function
 
 
 // Grammar: Collection of parsing rules:  RULE1  <-  PATT1  RULE2  <-  PATT2
-// The main class of the `peg` library.
+// (The main class of the `peg` library.)
 Grammar = new Pattern
-Grammar._name = "Grammar"
+Grammar._name = "peg.Grammar"
 Grammar.rules = null
 Grammar.ruleOrder = null
 Grammar.defaultRule = null
@@ -1296,9 +1296,9 @@ end function
 
 
 // addRule: Adds a new rule to a grammar.
-Grammar.addRule = function(ruleName, pattern=null)
+Grammar.addRule = function(ruleName, pattern=null, replaceP=null)
 	if not ruleName isa string then abort "Expected string, got `" + ruleName + "`"
-	if self.rules.hasIndex(ruleName) then abort "Rule already defined `" + ruleName + "`"
+	if not replaceP and self.rules.hasIndex(ruleName) then abort "Rule already defined `" + ruleName + "`"
 	if pattern != null then
 		Pattern._checkInstance pattern
 		self.rules[ruleName] = pattern
@@ -1491,7 +1491,7 @@ end function
 
 // RuleRef: Pattern that succeeds if the grammar rule of that name succeeds:  Foo
 RuleRef = new Pattern
-RuleRef._name = "RuleRef"
+RuleRef._name = "peg.RuleRef"
 RuleRef.ruleName = null
 
 
@@ -1547,7 +1547,7 @@ end function
 // PositionFlag: Pattern that manipulates a boolean flag associated with a position in the subject:  (+foo)  (-foo)  (/foo)
 // This pseudo-pattern always succeeds.
 PositionFlag = new Pattern
-PositionFlag._name = "PositionFlag"
+PositionFlag._name = "peg.PositionFlag"
 PositionFlag.action = null
 PositionFlag.flag = null
 

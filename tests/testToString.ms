@@ -46,7 +46,7 @@ end function
 
 
 testMatchToString = function
-	qa.assertEqual peg.Match._str, "Match class"
+	qa.assertEqual peg.Match._str, "peg.Match class"
 	
 	m = new peg.Match
 	m.init 0, 5, "hello"
@@ -71,12 +71,12 @@ end function
 
 
 testPatternToString = function
-	qa.assertEqual peg.Pattern._str, "Pattern class"
+	qa.assertEqual peg.Pattern._str, "peg.Pattern class"
 end function
 
 
 testAnyCharToString = function
-	qa.assertEqual peg.AnyChar._str, "AnyChar class"
+	qa.assertEqual peg.AnyChar._str, "peg.AnyChar class"
 	
 	p = peg.makeAnyChar
 	qa.assertEqual p._str, "AnyChar()"
@@ -84,7 +84,7 @@ end function
 
 
 testCharSetToString = function
-	qa.assertEqual peg.CharSet._str, "CharSet class"
+	qa.assertEqual peg.CharSet._str, "peg.CharSet class"
 	
 	p = peg.makeCharSet("abc")
 	qa.assertEqual p._str, "CharSet(abc)"
@@ -92,7 +92,7 @@ end function
 
 
 testCharRangeToString = function
-	qa.assertEqual peg.CharRange._str, "CharRange class"
+	qa.assertEqual peg.CharRange._str, "peg.CharRange class"
 	
 	p = peg.makeCharRange("a", "c")
 	qa.assertEqual p._str, "CharRange(a, c)"
@@ -100,7 +100,7 @@ end function
 
 
 testLiteralToString = function
-	qa.assertEqual peg.Literal._str, "Literal class"
+	qa.assertEqual peg.Literal._str, "peg.Literal class"
 	
 	p = peg.makeLiteral("foo")
 	qa.assertEqual p._str, "Literal(foo)"
@@ -108,7 +108,7 @@ end function
 
 
 testAndToString = function
-	qa.assertEqual peg.And._str, "And class"
+	qa.assertEqual peg.And._str, "peg.And class"
 	
 	p = peg.makeAnd(
 		peg.makeLiteral("foo"))
@@ -119,7 +119,7 @@ end function
 
 
 testNotToString = function
-	qa.assertEqual peg.Not._str, "Not class"
+	qa.assertEqual peg.Not._str, "peg.Not class"
 	
 	p = peg.makeNot(
 		peg.makeLiteral("foo"))
@@ -130,7 +130,7 @@ end function
 
 
 testChoiceToString = function
-	qa.assertEqual peg.Choice._str, "Choice class"
+	qa.assertEqual peg.Choice._str, "peg.Choice class"
 	
 	p = peg.makeChoice([
 		peg.makeLiteral("foo"),
@@ -145,7 +145,7 @@ end function
 
 
 testConcatToString = function
-	qa.assertEqual peg.Concat._str, "Concat class"
+	qa.assertEqual peg.Concat._str, "peg.Concat class"
 	
 	p = peg.makeConcat([
 		peg.makeLiteral("foo"),
@@ -160,7 +160,7 @@ end function
 
 
 testOptionalToString = function
-	qa.assertEqual peg.Optional._str, "Optional class"
+	qa.assertEqual peg.Optional._str, "peg.Optional class"
 	
 	p = peg.makeOptional(
 		peg.makeLiteral("foo"))
@@ -171,7 +171,7 @@ end function
 
 
 testZeroOrMoreToString = function
-	qa.assertEqual peg.ZeroOrMore._str, "ZeroOrMore class"
+	qa.assertEqual peg.ZeroOrMore._str, "peg.ZeroOrMore class"
 	
 	p = peg.makeZeroOrMore(
 		peg.makeLiteral("foo"))
@@ -182,7 +182,7 @@ end function
 
 
 testOneOrMoreToString = function
-	qa.assertEqual peg.OneOrMore._str, "OneOrMore class"
+	qa.assertEqual peg.OneOrMore._str, "peg.OneOrMore class"
 	
 	p = peg.makeOneOrMore(
 		peg.makeLiteral("foo"))
@@ -193,7 +193,7 @@ end function
 
 
 testGrammarToString = function
-	qa.assertEqual peg.Grammar._str, "Grammar class"
+	qa.assertEqual peg.Grammar._str, "peg.Grammar class"
 	
 	g = peg.makeGrammar
 	
@@ -222,7 +222,7 @@ end function
 
 
 testRuleRefToString = function
-	qa.assertEqual peg.RuleRef._str, "RuleRef class"
+	qa.assertEqual peg.RuleRef._str, "peg.RuleRef class"
 	
 	p = peg.makeRuleRef("Foo")
 	qa.assertEqual p._str,  "RuleRef(Foo)"
@@ -239,13 +239,13 @@ end function
 testParseResultToStringWithErrors = function
 	g = peg.makeGrammar("xxx <- 'a' <a!>  /  'b' <b!>  /  'c' <c!>")
 	res = g.parse("c")
-	qa.assertEqual res._str, "ParseResult(length: 1, match: Match(0, 1, c, Grammar(xxx))..., errors: [SyntaxError(a), SyntaxError(b)], captures.list: [], captures.map: {})"
+	qa.assertEqual res._str, "ParseResult(length: 1, match: Match(0, 1, c, Grammar(xxx))..., errors: [peg.SyntaxError(a), peg.SyntaxError(b)], captures.list: [], captures.map: {})"
 end function
 
 
 testErrorToString = function
 	err = new peg.Error
 	err.init "foo"
-	qa.assertEqual err._str, "Error(foo)"
+	qa.assertEqual err._str, "peg.Error(foo)"
 end function
 
