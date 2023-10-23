@@ -6,3 +6,8 @@
 * Position flags
 * Dynamic inclusions
 
+
+## not released
+
+* If-patterns: %if flag% patt1 %else% patt2 %end%
+

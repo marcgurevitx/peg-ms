@@ -48,7 +48,7 @@ else
 	extraStack = 3
 	abort = function(msg)
 		print msg
-		s = stackTrace[:]
+		s = stackTrace[:-1]
 		if s.len > maxStack + extraStack then s = s[:maxStack/2] + ["... (+" + (s.len - maxStack) + " lines) ..."] + s[-maxStack/2:]
 		s.apply @print
 		exit
@@ -1588,6 +1588,80 @@ makePositionFlag = function(action, flag)
 end function
 
 
+// If: Pattern that matches one of the alternative subpatterns depending on the truthness of a value inside arg:  %if foo.bar then%  PATT1  %else%  PATT2  %end if%
+// If `%else% ...` part is omitted but the flag evaluates to false, it succeeds with an empty string as a match.
+If = new Pattern
+If._name = "peg.If"
+If.flagPath = null
+If.ifTrue = null
+If.ifFalse = null
+
+
+If.init = function(flagPath, ifTrue, ifFalse=null)
+	super.init
+	self.flagPath = flagPath
+	self.addChild(ifTrue)
+	if ifFalse != null then self.addChild(ifFalse)
+end function
+
+
+If.nodeToStr = function
+	return "If(" + self.flagPath.join(".") + ")"
+end function
+
+
+// _matchSyntaxLogic: Choose one the two alternative subpatterns.
+If._matchSyntaxLogic = function(ctx, arg=null)
+	flag = arg
+	for key in self.flagPath
+		if not flag isa map then
+			flag = null
+			break
+		end if
+		flag = flag.get(key)
+	end for
+	if flag then
+		subm = self.children[0].matchSyntax(ctx, arg)
+	else if self.children.len > 1 then
+		subm = self.children[1].matchSyntax(ctx, arg)
+	else
+		match = new Match
+		match.init ctx.index, 0, "", self
+		return match
+	end if
+	if subm == null then return null
+	match = new Match
+	match.init ctx.index, subm.length, subm.fragment, self
+	match.addChild subm
+	return match
+end function
+
+
+If.generatePegString = function
+	ifFlag = self.flagPath.join(".")
+	ifTrue = self.children[0].generatePegString
+	if self.children.len > 1 then
+		ifFalse = self.children[1].generatePegString
+	else
+		ifFalse = null
+	end if
+	parts = []
+	parts.push "%if {ifFlag} then%  {ifTrue}  ".fill(locals)
+	if ifFalse != null then
+		parts.push "%else%  {ifFalse}  ".fill(locals)
+	end if
+	parts.push "%end if%"
+	return parts.join("")
+end function
+
+
+makeIf = function(flagPath, ifTrue, ifFalse=null)
+	p = new If
+	p.init flagPath, ifTrue, ifFalse
+	return p
+end function
+
+
 // _makePegGrammar: Build a grammar object that parses PEGs.
 _makePegGrammar = function
 	abort               = @outer.abort
@@ -1595,13 +1669,14 @@ _makePegGrammar = function
 	makeSemanticError   = @outer.makeSemanticError
 	makeAnd             = @outer.makeAnd
 	makeAnyChar         = @outer.makeAnyChar
+	makeCharRange       = @outer.makeCharRange
 	makeChoice          = @outer.makeChoice
 	makeConcat          = @outer.makeConcat
+	makeIf              = @outer.makeIf
 	makeLiteral         = @outer.makeLiteral
 	makeNot             = @outer.makeNot
 	makeOneOrMore       = @outer.makeOneOrMore
 	makeOptional        = @outer.makeOptional
-	makeCharRange       = @outer.makeCharRange
 	makePositionFlag    = @outer.makePositionFlag
 	makeRuleRef         = @outer.makeRuleRef
 	makeZeroOrMore      = @outer.makeZeroOrMore
@@ -2009,9 +2084,83 @@ _makePegGrammar = function
 	g.addCaptureAction "positionFlag", @_positionFlagSemantics
 	
 	
+	// If
+	
+	_ifPeg =    "( [%]  Space  'if' <noIfKeyword!>  ! Identifier  Space  " +
+	            "( ( Identifier  ( [.]  Identifier ) * ) {ifFlag:} ) <noFlag!>  " +
+	            "( 'then'  Space ) ?  [%] <noClosingPercent!>  Space  " +
+	            "( Pattern {ifTrue:0} ) <noTruePattern!>  " +
+	            "( [%]  Space  'else'  Space  [%] <noClosingPercent!>  Space  Pattern <noFalsePattern!> ) {ifFalse:0} ?  " +
+	            "[%] <noBeginningOfEndPercent!>  Space  'end' <noEndKeyword!>  ! Identifier  Space  ( 'if'  Space ) ?  [%] <noClosingPercent!>  Space ) {if}"
+	
+	g.addRule "If",
+		makeConcat([
+			makeCharSet("%"),
+			makeRuleRef("Space"),
+			makeLiteral("if").withMatchTimeTag("noIfKeyword!"),
+			makeNot(
+				makeRuleRef("Identifier")),
+			makeRuleRef("Space"),
+			makeConcat([
+				makeConcat([
+					makeRuleRef("Identifier"),
+					makeZeroOrMore(
+						makeConcat([
+							makeCharSet("."),
+							makeRuleRef("Identifier"),
+						])),
+				]).withCaptureTag("ifFlag:"),
+			]).withMatchTimeTag("noFlag!"),
+			makeOptional(
+				makeConcat([
+					makeLiteral("then"),
+					makeRuleRef("Space"),
+				])),
+			makeCharSet("%").withMatchTimeTag("noClosingPercent!"),
+			makeRuleRef("Space"),
+			makeConcat([
+				makeRuleRef("Pattern").withCaptureTag("ifTrue:0"),
+			]).withMatchTimeTag("noTruePattern!"),
+			makeOptional(
+				makeConcat([
+					makeCharSet("%"),
+					makeRuleRef("Space"),
+					makeLiteral("else"),
+					makeRuleRef("Space"),
+					makeCharSet("%").withMatchTimeTag("noClosingPercent!"),
+					makeRuleRef("Space"),
+					makeRuleRef("Pattern").withMatchTimeTag("noFalsePattern!"),
+				]).withCaptureTag("ifFalse:0")),
+			makeCharSet("%").withMatchTimeTag("noBeginningOfEndPercent!"),
+			makeRuleRef("Space"),
+			makeLiteral("end").withMatchTimeTag("noEndKeyword!"),
+			makeNot(
+				makeRuleRef("Identifier")),
+			makeRuleRef("Space"),
+			makeOptional(
+				makeConcat([
+					makeLiteral("if"),
+					makeRuleRef("Space"),
+				])),
+			makeCharSet("%").withMatchTimeTag("noClosingPercent!"),
+			makeRuleRef("Space"),
+		]).withCaptureTag("if")
+	
+	g.getRulePattern("If")._DEBUG_PEG = _ifPeg
+	
+	_ifSemantics = function(match, subcaptures, arg, ctx)
+		flagPath = subcaptures.map.ifFlag.trim.split(".")
+		ifTrue = subcaptures.map.ifTrue
+		ifFalse = subcaptures.map.get("ifFalse")
+		pattern = makeIf(flagPath, ifTrue, ifFalse)
+		return pattern
+	end function
+	g.addCaptureAction "if", @_ifSemantics
+	
+	
 	// Alternative
 	
-	_alternativePeg = "( ( [!&] {}  Space  WithSuffix <noPattern!> ) {prefixed}  /  WithSuffix  /  PositionFlag ) + {concat}"
+	_alternativePeg = "( ( [!&] {}  Space  WithSuffix <noPattern!> ) {prefixed}  /  WithSuffix  /  PositionFlag  /  If ) + {concat}"
 	
 	g.addRule "Alternative",
 		makeOneOrMore(
@@ -2023,6 +2172,7 @@ _makePegGrammar = function
 				]).withCaptureTag("prefixed"),
 				makeRuleRef("WithSuffix"),
 				makeRuleRef("PositionFlag"),
+				makeRuleRef("If"),
 			])).withCaptureTag("concat")
 	
 	g.getRulePattern("Alternative")._DEBUG_PEG = _alternativePeg

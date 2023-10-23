@@ -1106,6 +1106,12 @@ testPegGenerate = function
 	
 	p = peg.pegGrammar.getRulePattern("Grammar")
 	qa.assertEqual p.generatePegString, p._DEBUG_PEG
+	
+	p = peg.pegGrammar.getRulePattern("PositionFlag")
+	qa.assertEqual p.generatePegString, p._DEBUG_PEG
+	
+	p = peg.pegGrammar.getRulePattern("If")
+	qa.assertEqual p.generatePegString, p._DEBUG_PEG
 end function
 
 

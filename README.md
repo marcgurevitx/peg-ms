@@ -29,6 +29,11 @@ print listOfNumbers.parse("[ 44, 55 ]").captures.list    // [44, 55]
 ```
 
 
+## Install
+
+Add `"peg-ms/lib"` to the *import paths* or copy the file `peg-ms/lib/peg.ms` to the project's `lib/`.
+
+
 ## Syntax
 
 Most of [standard PEG](https://bford.info/pub/lang/peg.pdf) syntax is implemented.
@@ -64,6 +69,8 @@ Additionally, the library supports some nonstandard syntax:
 | `p <name!>` | match-time error | 4 |
 | `name <- $` | dynamic inclusion rule | |
 | `name : p` | default initial rule | |
+| `(+name)`, `(-name)`, `(/name)` | position flags | |
+| `%if flag% p1 %else% p2 %end%` | if-patterns | |
 
 Suffixes `{…}` and `<…>` have the same precedence as `?*+`.
 
