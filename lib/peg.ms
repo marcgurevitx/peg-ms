@@ -40,6 +40,20 @@ escapes[""""] = """"
 escapes["\"] = "\"
 
 
+// getStepRecorder: ?
+getStepRecorder = null
+
+
+// stepType: ?
+stepType = {}
+stepType.match = 0
+stepType.success = 1
+stepType.failure = 2
+stepType.callMT = 3
+stepType.captureAlreadySet = 4
+stepType.setCapture = 5
+
+
 // abort: Prints error message and dies.
 if globals.hasIndex("abort") then
 	abort = @globals.abort
@@ -325,18 +339,21 @@ end function
 
 
 // matchSyntax: Matches a string and a pattern.
+// `depth` -- current depth inside the pattern tree
 // `ctx` -- a ParsingContext object
 // `arg` -- optional data passed to `Grammar.parse`
 // Returns a Match object on successful match or null on failure.
-Pattern.matchSyntax = function(ctx, arg=null)
+Pattern.matchSyntax = function(depth, ctx, arg=null)
 	ctx.removeFlagsToRight
-	match = self._matchSyntaxLogic(ctx, arg)
+	matchId = ctx.recordStep(stepType.match, depth, self)
+	match = self._matchSyntaxLogic(depth, ctx, arg)
 	
 	if self.matchTimeTag != null then
 		if self.matchTimeTag.endsWith("!") then
 			tag = self.matchTimeTag[:-1]
 			if match == null then ctx.addSyntaxError tag, tag
 		else if ctx.grammar != null then
+			ctx.recordStep stepType.callMT, depth, self, match, {"matchTimeTag": self.matchTimeTag, "matchId": matchId}
 			action = ctx.grammar.findMatchTimeAction(ctx.ruleName, self.matchTimeTag)
 			if @action == null then abort "Match-time action not defined for <" + self.matchTimeTag + ">"
 			subcapturesFunc = function
@@ -355,7 +372,15 @@ Pattern.matchSyntax = function(ctx, arg=null)
 		end if
 	end if
 	
+	if match != null then
+		ctx.recordStep stepType.success, depth, self, match, {"matchId": matchId}
+		if @match.capture != null then ctx.recordStep stepType.captureAlreadySet, depth, self, match, {"matchId": matchId}
+	else
+		ctx.recordStep stepType.failure, depth, self, null, {"matchId": matchId}
+	end if
+	
 	if match != null and @match.capture == null and self.captureTag != null then
+		ctx.recordStep stepType.setCapture, depth, self, match, {"captureTag": self.captureTag, "matchId": matchId}
 		tag = self.captureTag
 		tagParts = tag.split(":")
 		isKeyCapture = tagParts.len > 1
@@ -395,7 +420,7 @@ end function
 // Pattern subclasses override this method.
 // Has the same parameters and a return value as `Pattern.matchSyntax`.
 // If the pattern has subpatterns, this method is responsible to call their corresponding .matchSyntax method.
-Pattern._matchSyntaxLogic = function(ctx, arg=null)
+Pattern._matchSyntaxLogic = function(depth, ctx, arg=null)
 	
 	abort "Method ._matchSyntaxLogic should be overridden"
 	
@@ -447,7 +472,7 @@ end function
 
 
 // _matchSyntaxLogic: Matches one character.
-AnyChar._matchSyntaxLogic = function(ctx, arg=null)
+AnyChar._matchSyntaxLogic = function(depth, ctx, arg=null)
 	fragment = ctx.subject[ctx.index : ctx.index + 1]
 	if fragment.len == 0 then
 		return null
@@ -488,7 +513,7 @@ end function
 
 
 // _matchSyntaxLogic: Matches one character from a character set.
-CharSet._matchSyntaxLogic = function(ctx, arg=null)
+CharSet._matchSyntaxLogic = function(depth, ctx, arg=null)
 	fragment = ctx.subject[ctx.index : ctx.index + 1]
 	if fragment.len == 0 or self.characters.indexOf(fragment) == null then
 		return null
@@ -544,7 +569,7 @@ end function
 
 
 // _matchSyntaxLogic: Matches one character from a character range.
-CharRange._matchSyntaxLogic = function(ctx, arg=null)
+CharRange._matchSyntaxLogic = function(depth, ctx, arg=null)
 	fragment = ctx.subject[ctx.index : ctx.index + 1]
 	if not (self.from.code <= fragment.code <= self.to.code) then
 		return null
@@ -593,7 +618,7 @@ end function
 
 
 // _matchSyntaxLogic: Matches an exact string.
-Literal._matchSyntaxLogic = function(ctx, arg=null)
+Literal._matchSyntaxLogic = function(depth, ctx, arg=null)
 	fragment = ctx.subject[ctx.index : ctx.index + self.string_.len]
 	if fragment != self.string_ then
 		return null
@@ -642,9 +667,9 @@ end function
 
 
 // _matchSyntaxLogic: Succeeds if the subpattern matches but consumes no input.
-And._matchSyntaxLogic = function(ctx, arg=null)
+And._matchSyntaxLogic = function(depth, ctx, arg=null)
 	pattern = self.getOnlyChild
-	subm = pattern.matchSyntax(ctx + {"insidePredicate": true}, arg)
+	subm = pattern.matchSyntax(depth + 1, ctx + {"insidePredicate": true}, arg)
 	if subm == null then
 		return null
 	end if
@@ -698,9 +723,9 @@ end function
 
 
 // _matchSyntaxLogic: Succeeds if the subpattern fails, consumes no input.
-Not._matchSyntaxLogic = function(ctx, arg=null)
+Not._matchSyntaxLogic = function(depth, ctx, arg=null)
 	pattern = self.getOnlyChild
-	subm = pattern.matchSyntax(ctx + {"insidePredicate": true}, arg)
+	subm = pattern.matchSyntax(depth + 1, ctx + {"insidePredicate": true}, arg)
 	if subm != null then
 		return null
 	end if
@@ -779,9 +804,9 @@ end function
 
 
 // _matchSyntaxLogic: Succeeds if one of subpattern succeeds.
-Choice._matchSyntaxLogic = function(ctx, arg=null)
+Choice._matchSyntaxLogic = function(depth, ctx, arg=null)
 	for pattern in self.children
-		subm = pattern.matchSyntax(ctx, arg)
+		subm = pattern.matchSyntax(depth + 1, ctx, arg)
 		if subm != null then
 			match = new Match
 			match.init ctx.index, subm.length, subm.fragment, self
@@ -848,12 +873,12 @@ end function
 
 
 // _matchSyntaxLogic: Succeeds if all the subpatterns match in succession.
-Concat._matchSyntaxLogic = function(ctx, arg=null)
+Concat._matchSyntaxLogic = function(depth, ctx, arg=null)
 	subms = []
 	index = ctx.index
 	fragments = []
 	for pattern in self.children
-		subm = pattern.matchSyntax(ctx + {"index": index}, arg)
+		subm = pattern.matchSyntax(depth + 1, ctx + {"index": index}, arg)
 		if subm == null then
 			return null
 		end if
@@ -917,9 +942,9 @@ end function
 
 
 // _matchSyntaxLogic: Succeeds if one or zero occurrences of the subpattern match.
-Optional._matchSyntaxLogic = function(ctx, arg=null)
+Optional._matchSyntaxLogic = function(depth, ctx, arg=null)
 	pattern = self.getOnlyChild
-	subm = pattern.matchSyntax(ctx, arg)
+	subm = pattern.matchSyntax(depth + 1, ctx, arg)
 	match = new Match
 	if subm == null then
 		match.init ctx.index, 0, "", self
@@ -967,13 +992,13 @@ end function
 
 
 // _matchSyntaxLogic: Succeeds if zero or more occurrences of the subpattern match.
-ZeroOrMore._matchSyntaxLogic = function(ctx, arg=null)
+ZeroOrMore._matchSyntaxLogic = function(depth, ctx, arg=null)
 	pattern = self.getOnlyChild
 	subms = []
 	index = ctx.index
 	fragments = []
 	while true
-		subm = pattern.matchSyntax(ctx + {"index": index}, arg)
+		subm = pattern.matchSyntax(depth + 1, ctx + {"index": index}, arg)
 		if subm == null then break
 		subms.push subm
 		index += subm.length
@@ -1026,13 +1051,13 @@ end function
 
 
 // _matchSyntaxLogic: Succeeds if zero or more occurrences of the subpattern match.
-OneOrMore._matchSyntaxLogic = function(ctx, arg=null)
+OneOrMore._matchSyntaxLogic = function(depth, ctx, arg=null)
 	pattern = self.getOnlyChild
 	subms = []
 	index = ctx.index
 	fragments = []
 	while true
-		subm = pattern.matchSyntax(ctx + {"index": index}, arg)
+		subm = pattern.matchSyntax(depth + 1, ctx + {"index": index}, arg)
 		if subm == null then break
 		subms.push subm
 		index += subm.length
@@ -1074,6 +1099,7 @@ end function
 // ParseContext: Collection of data associated with a single call to `Grammar.parse`.
 ParseContext = {}
 ParseContext._name = "peg.ParseContext"
+ParseContext._root = null
 ParseContext.cachedSubcaptures = null
 ParseContext.grammar = null
 ParseContext.index = null
@@ -1084,15 +1110,19 @@ ParseContext.ruleStart = null
 ParseContext.subject = null
 ParseContext.syntaxErrors = null
 ParseContext.flags = null
+ParseContext.stepRecorder = null
 
 
 ParseContext.init = function(subject, index, initialRule=null)
+	self._root = {}
 	self.subject = subject
 	self.index = index
 	self._initialRule = initialRule
 	self.cachedSubcaptures = []
 	self.syntaxErrors = []
 	self.flags = {}
+	if @getStepRecorder != null then self.stepRecorder = getStepRecorder
+	self._root.nextMatchId = 1
 end function
 
 
@@ -1122,9 +1152,9 @@ end function
 
 
 // getFlag: Computes the value of a position flag from start upto `index`.
-ParseContext.getFlag = function(index, flagName)
+ParseContext.getFlag = function(index, flagName, arg=null)
 	if not index isa number then abort ".getFlag expected an index, got `" + index + "`"
-	flagStack = { "_flag": false }
+	flagStack = { "_flag": null }
 	for i in self.flags.indexes.sort
 		if i > index then break
 		patterns = self.flags[i]
@@ -1143,7 +1173,18 @@ ParseContext.getFlag = function(index, flagName)
 			end if
 		end for
 	end for
-	return flagStack._flag
+	flag = flagStack._flag
+	if flag == null then
+		flag = arg
+		for key in flagName.split(".")
+			if not flag isa map then
+				flag = null
+				break
+			end if
+			flag = flag.get(key)
+		end for
+	end if
+	return flag
 end function
 
 
@@ -1152,6 +1193,39 @@ ParseContext.removeFlagsToRight = function
 	for i in self.flags.indexes
 		if i > self.index then self.flags.remove i
 	end for
+end function
+
+
+// pegLib: ?
+ParseContext.pegLib = function
+	return outer
+end function
+
+
+// recordStep: ?
+ParseContext.recordStep = function(stepType_, depth, pattern, match=null, info=null)
+	if self.stepRecorder == null then return
+	if info == null then info = {}
+	step = {}
+	step.type = stepType_
+	step.depth = depth
+	step.pattern = pattern
+	step.index = self.index
+	step.match = match
+	step.info = info
+	step.errors = self.syntaxErrors[:]
+	step.flags = {}
+	if self.grammar != null then
+		for flagName in self.grammar.usedFlags.indexes
+			step.flags[flagName] = self.getFlag(self.index, flagName)
+		end for
+	end if
+	if not info.hasIndex("matchId") then
+		info.matchId = self._root.nextMatchId
+		self._root.nextMatchId += 1
+	end if
+	self.stepRecorder.recordStep step
+	return info.matchId
 end function
 
 
@@ -1231,6 +1305,7 @@ Grammar.ruleOrder = null
 Grammar.defaultRule = null
 Grammar.captureActions = null
 Grammar.matchTimeActions = null
+Grammar.usedFlags = null
 
 
 // init: Initializes a grammar.
@@ -1242,11 +1317,13 @@ Grammar.init = function(pegString=null, defaultRuleName=null)
 	if self.pegString == null then
 		self.rules = {}
 		self.ruleOrder = []
+		self.usedFlags = {}
 	else
 		rulesCapture = self._parsePegString(self.pegString)
 		self.rules = rulesCapture.rules
 		self.ruleOrder = rulesCapture.ruleOrder
 		self.defaultRule = rulesCapture.defaultRule
+		self.usedFlags = rulesCapture.usedFlags
 	end if
 	self.captureActions = {}
 	self.matchTimeActions = {}
@@ -1258,6 +1335,7 @@ end function
 Grammar._parsePegString = function(pegString)
 	arg = {}
 	arg.ruleNames = {}
+	arg.usedFlags = {}
 	res = pegGrammar.parse(self.pegString, 0, arg)
 	if res.length == null then
 		reasons = []
@@ -1324,7 +1402,7 @@ end function
 
 
 // _matchSyntaxLogic: Succeeds if grammar's default rule succeeds.
-Grammar._matchSyntaxLogic = function(ctx, arg=null)
+Grammar._matchSyntaxLogic = function(depth, ctx, arg=null)
 	if ctx._initialRule == null then
 		ruleName = self.getDefaultRule
 		if ruleName == null then abort "Unable to match, default rule not set"
@@ -1334,7 +1412,7 @@ Grammar._matchSyntaxLogic = function(ctx, arg=null)
 		ctx.remove "_initialRule"
 	end if
 	pattern = self.rules[ruleName]
-	subm = pattern.matchSyntax(ctx + {"grammar": self, "ruleName": ruleName, "ruleStart": ctx.index}, arg)
+	subm = pattern.matchSyntax(depth + 1, ctx + {"grammar": self, "ruleName": ruleName, "ruleStart": ctx.index}, arg)
 	if subm == null then
 		return null
 	end if
@@ -1418,13 +1496,14 @@ Grammar.findMatchTimeAction = function(ruleName, matchTimeTag)
 end function
 
 
-// parse: Matches a string and a grammar and returns an object of ParseResult class.
+// parse: Matches a string with a grammar and returns an object of ParseResult class.
 Grammar.parse = function(subject, start=null, arg=null, initialRule=null)
 	if start == null then start = 0
 	res = makeParseResult
 	ctx = makeParseContext(subject, start, initialRule)
-	res.match = self.matchSyntax(ctx, arg)
+	res.match = self.matchSyntax(0, ctx, arg)
 	res.errors = ctx.syntaxErrors
+	if ctx.stepRecorder != null then ctx.stepRecorder.stepsReady(ctx.subject)
 	if res.match == null then
 		return res
 	end if
@@ -1507,9 +1586,9 @@ end function
 
 
 // _matchSyntaxLogic: Succeeds if the grammar rule of that name succeeds.
-RuleRef._matchSyntaxLogic = function(ctx, arg=null)
+RuleRef._matchSyntaxLogic = function(depth, ctx, arg=null)
 	pattern = ctx.grammar.getRulePattern(self.ruleName, arg)
-	subm = pattern.matchSyntax(ctx + {"ruleName": self.ruleName, "ruleStart": ctx.index}, arg)
+	subm = pattern.matchSyntax(depth + 1, ctx + {"ruleName": self.ruleName, "ruleStart": ctx.index}, arg)
 	if subm == null then
 		return null
 	end if
@@ -1566,7 +1645,7 @@ end function
 
 
 // _matchSyntaxLogic: Registers a position flag (and always succeeds).
-PositionFlag._matchSyntaxLogic = function(ctx, arg=null)
+PositionFlag._matchSyntaxLogic = function(depth, ctx, arg=null)
 	if ctx.flags.get(ctx.index) == null then ctx.flags[ctx.index] = []
 	ctx.flags[ctx.index].push self
 	match = new Match
@@ -1606,24 +1685,17 @@ end function
 
 
 If.nodeToStr = function
-	return "If(" + self.flagPath.join(".") + ")"
+	return "If(" + self.flagPath + ")"
 end function
 
 
-// _matchSyntaxLogic: Choose one the two alternative subpatterns.
-If._matchSyntaxLogic = function(ctx, arg=null)
-	flag = arg
-	for key in self.flagPath
-		if not flag isa map then
-			flag = null
-			break
-		end if
-		flag = flag.get(key)
-	end for
+// _matchSyntaxLogic: Choose one of the two alternative subpatterns.
+If._matchSyntaxLogic = function(depth, ctx, arg=null)
+	flag = ctx.getFlag(ctx.index, self.flagPath, arg)
 	if flag then
-		subm = self.children[0].matchSyntax(ctx, arg)
+		subm = self.children[0].matchSyntax(depth + 1, ctx, arg)
 	else if self.children.len > 1 then
-		subm = self.children[1].matchSyntax(ctx, arg)
+		subm = self.children[1].matchSyntax(depth + 1, ctx, arg)
 	else
 		match = new Match
 		match.init ctx.index, 0, "", self
@@ -1638,7 +1710,7 @@ end function
 
 
 If.generatePegString = function
-	ifFlag = self.flagPath.join(".")
+	ifFlag = self.flagPath
 	ifTrue = self.children[0].generatePegString
 	if self.children.len > 1 then
 		ifFalse = self.children[1].generatePegString
@@ -2058,7 +2130,7 @@ _makePegGrammar = function
 	
 	// PositionFlag
 	
-	_positionFlagPeg = "( '('  [+/-] {}  Space  Identifier <noIdentifier!>  ')' <noClosingParen!> ) {positionFlag}  Space"
+	_positionFlagPeg = "( '('  [+/-] {}  Space  Identifier <noIdentifier!>  ( [.]  Identifier ) *  ')' <noClosingParen!> ) {positionFlag}  Space"
 	
 	g.addRule "PositionFlag",
 		makeConcat([
@@ -2067,6 +2139,11 @@ _makePegGrammar = function
 				makeCharSet("+/-").withCaptureTag,
 				makeRuleRef("Space"),
 				makeRuleRef("Identifier").withMatchTimeTag("noIdentifier!"),
+				makeZeroOrMore(
+					makeConcat([
+						makeCharSet("."),
+						makeRuleRef("Identifier"),
+					])),
 				makeLiteral(")").withMatchTimeTag("noClosingParen!"),
 			]).withCaptureTag("positionFlag"),
 			makeRuleRef("Space"),
@@ -2076,7 +2153,8 @@ _makePegGrammar = function
 	
 	_positionFlagSemantics = function(match, subcaptures, arg, ctx)
 		marker = subcaptures.list[0]
-		ident = subcaptures.list[1]
+		ident = subcaptures.list[1:].join(".")
+		arg.usedFlags[ident] = true
 		action = {"+": flagAction.setTrue, "-": flagAction.setFalse, "/": flagAction.unset}[marker]
 		pattern = makePositionFlag(action, ident)
 		return pattern
@@ -2149,9 +2227,10 @@ _makePegGrammar = function
 	g.getRulePattern("If")._DEBUG_PEG = _ifPeg
 	
 	_ifSemantics = function(match, subcaptures, arg, ctx)
-		flagPath = subcaptures.map.ifFlag.trim.split(".")
+		flagPath = subcaptures.map.ifFlag.trim
 		ifTrue = subcaptures.map.ifTrue
 		ifFalse = subcaptures.map.get("ifFalse")
+		arg.usedFlags[flagPath] = true
 		pattern = makeIf(flagPath, ifTrue, ifFalse)
 		return pattern
 	end function
@@ -2299,6 +2378,7 @@ _makePegGrammar = function
 		result.rules = rules
 		result.ruleOrder = ruleOrder
 		result.defaultRule = defaultRule
+		result.usedFlags = arg.usedFlags
 		return result
 	end function
 	g.addCaptureAction "ruleDefs", @_ruleDefsSemantics

@@ -87,3 +87,15 @@ testGrammarDefaultRuleSyntax = function
 	qa.assertEqual g.parse("foo").capture, "foo"
 end function
 
+
+testGrammarUsedFlags = function
+	g = new peg.Grammar
+	g.init "_: (+xxx) (-yyy) (/zzz) %if www% . %end if%"
+	
+	qa.assertEqual g.usedFlags.len, 4
+	qa.assertEqual g.usedFlags.xxx, true
+	qa.assertEqual g.usedFlags.yyy, true
+	qa.assertEqual g.usedFlags.zzz, true
+	qa.assertEqual g.usedFlags.www, true
+end function
+

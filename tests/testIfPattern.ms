@@ -104,3 +104,17 @@ testIfPatternNestedFlag = function
 	qa.assertEqual res.length, null
 end function
 
+
+testIfPatternRecognizesPositionFlags = function
+	g = new peg.Grammar
+	g.init "_:  'a'  %if xxx%  'b'  %end%  'c'  "
+	res = g.parse("abc")
+	qa.assertEqual res.length, null
+	
+	g = new peg.Grammar
+	g.init "_:  (+xxx)  'a'  %if xxx%  'b'  %end%  'c'  "
+	res = g.parse("abc")
+	qa.assertEqual res.length, 3
+	qa.assertEqual res.match.fragment, "abc"
+end function
+

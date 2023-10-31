@@ -26,21 +26,21 @@ testPositionFlagsWithoutMoveBack = function
 	arg.foo = []
 	res = g.parse(text, 0, arg)
 	qa.assertEqual res.length, null
-	qa.assertEqual arg.foo, [0]
+	qa.assertEqual arg.foo, [null]
 	
 	text = "xy"
 	arg = {}
 	arg.foo = []
 	res = g.parse(text, 0, arg)
 	qa.assertEqual res.length, null
-	qa.assertEqual arg.foo, [0, 1]
+	qa.assertEqual arg.foo, [null, 1]
 	
 	text = "xyz"
 	arg = {}
 	arg.foo = []
 	res = g.parse(text, 0, arg)
 	qa.assertEqual res.length, 3
-	qa.assertEqual arg.foo, [0, 1, 0]
+	qa.assertEqual arg.foo, [null, 1, null]
 end function
 
 
@@ -66,28 +66,28 @@ testPositionFlagsWithMoveBack = function
 	arg.foo = []
 	res = g.parse(text, 0, arg)
 	qa.assertEqual res.length, null
-	qa.assertEqual arg.foo, [0]
+	qa.assertEqual arg.foo, [null]
 	
 	text = "xy"
 	arg = {}
 	arg.foo = []
 	res = g.parse(text, 0, arg)
 	qa.assertEqual res.length, null
-	qa.assertEqual arg.foo, [0, 0, 0]
+	qa.assertEqual arg.foo, [null, null, null]
 	
 	text = "xyz"
 	arg = {}
 	arg.foo = []
 	res = g.parse(text, 0, arg)
 	qa.assertEqual res.length, 3
-	qa.assertEqual arg.foo, [0, 0, 1]
+	qa.assertEqual arg.foo, [null, null, 1]
 	
 	text = "xyw"
 	arg = {}
 	arg.foo = []
 	res = g.parse(text, 0, arg)
 	qa.assertEqual res.length, 3
-	qa.assertEqual arg.foo, [0, 0, 0, 0]
+	qa.assertEqual arg.foo, [null, null, null, null]
 end function
 
 
@@ -113,35 +113,35 @@ testPositionFlagsNested = function
 	arg.foo = []
 	res = g.parse(text, 0, arg)
 	qa.assertEqual res.length, null
-	qa.assertEqual arg.foo, [0]
+	qa.assertEqual arg.foo, [null]
 	
 	text = "xy"
 	arg = {}
 	arg.foo = []
 	res = g.parse(text, 0, arg)
 	qa.assertEqual res.length, null
-	qa.assertEqual arg.foo, [0, 1]
+	qa.assertEqual arg.foo, [null, 1]
 	
 	text = "xyz"
 	arg = {}
 	arg.foo = []
 	res = g.parse(text, 0, arg)
 	qa.assertEqual res.length, null
-	qa.assertEqual arg.foo, [0, 1, 1]
+	qa.assertEqual arg.foo, [null, 1, 1]
 	
 	text = "xyzw"
 	arg = {}
 	arg.foo = []
 	res = g.parse(text, 0, arg)
 	qa.assertEqual res.length, null
-	qa.assertEqual arg.foo, [0, 1, 1, 1]
+	qa.assertEqual arg.foo, [null, 1, 1, 1]
 	
 	text = "xyzwv"
 	arg = {}
 	arg.foo = []
 	res = g.parse(text, 0, arg)
 	qa.assertEqual res.length, 5
-	qa.assertEqual arg.foo, [0, 1, 1, 1, 0]
+	qa.assertEqual arg.foo, [null, 1, 1, 1, null]
 end function
 
 
@@ -160,7 +160,7 @@ testPositionFlagsNested2 = function
 	arg.foo = []
 	res = g.parse(text, 0, arg)
 	qa.assertEqual res.length, 7
-	qa.assertEqual arg.foo, [0, 1, 1, 0, 1, 1, 0]
+	qa.assertEqual arg.foo, [null, 1, 1, 0, 1, 1, null]
 end function
 
 
@@ -179,7 +179,7 @@ testPositionFlagsUnbalanced = function
 	arg.foo = []
 	res = g.parse(text, 0, arg)
 	qa.assertEqual res.length, 2
-	qa.assertEqual arg.foo, [0]
+	qa.assertEqual arg.foo, [null]
 end function
 
 
@@ -198,7 +198,7 @@ testPositionFlagsAnnihilation = function
 	arg.foo = []
 	res = g.parse(text, 0, arg)
 	qa.assertEqual res.length, 2
-	qa.assertEqual arg.foo, [0]
+	qa.assertEqual arg.foo, [null]
 end function
 
 
@@ -240,5 +240,21 @@ testPositionFlagsToString = function
 	                                            " PositionFlag(+foo)"   + _NL +
 	                                            " PositionFlag(-bar)"   + _NL +
 	                                            " PositionFlag(/baz)"
+end function
+
+
+testPositionFlagsToString = function
+	g = new peg.Grammar
+	g.init "_: 'a'<mt> (+xxx.yyy) 'b'<mt>"
+	
+	g.matchTime "mt", function(match, subcaptures, arg, ctx)
+		arg.fff.push ctx.getFlag(match.start, "xxx.yyy")
+		return match
+	end function
+	
+	arg = {}
+	arg.fff = []
+	res = g.parse("ab", 0, arg)
+	qa.assertEqual arg.fff, [null, 1]
 end function
 

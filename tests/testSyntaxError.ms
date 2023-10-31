@@ -12,7 +12,7 @@ testAnyCharSyntaxError = function
 	ctx.ruleName = "Foo"
 	ctx.ruleStart = 0
 	
-	m = p.matchSyntax(ctx)
+	m = p.matchSyntax(0, ctx)
 	qa.assertEqual m, null
 	qa.assertEqual ctx.syntaxErrors[0] isa peg.SyntaxError, true
 	qa.assertEqual ctx.syntaxErrors[0].tag, "xxx"
@@ -27,7 +27,7 @@ testCharSetSyntaxError = function
 	ctx.ruleName = "Foo"
 	ctx.ruleStart = 0
 	
-	m = p.matchSyntax(ctx)
+	m = p.matchSyntax(0, ctx)
 	qa.assertEqual m, null
 	qa.assertEqual ctx.syntaxErrors[0] isa peg.SyntaxError, true
 	qa.assertEqual ctx.syntaxErrors[0].tag, "xxx"
@@ -42,7 +42,7 @@ testCharRangeSyntaxError = function
 	ctx.ruleName = "Foo"
 	ctx.ruleStart = 0
 	
-	m = p.matchSyntax(ctx)
+	m = p.matchSyntax(0, ctx)
 	qa.assertEqual m, null
 	qa.assertEqual ctx.syntaxErrors[0] isa peg.SyntaxError, true
 	qa.assertEqual ctx.syntaxErrors[0].tag, "xxx"
@@ -57,7 +57,7 @@ testLiteralSyntaxError = function
 	ctx.ruleName = "Foo"
 	ctx.ruleStart = 0
 	
-	m = p.matchSyntax(ctx)
+	m = p.matchSyntax(0, ctx)
 	qa.assertEqual m, null
 	qa.assertEqual ctx.syntaxErrors[0] isa peg.SyntaxError, true
 	qa.assertEqual ctx.syntaxErrors[0].tag, "xxx"
@@ -73,7 +73,7 @@ testAndSyntaxError = function
 	ctx.ruleName = "Foo"
 	ctx.ruleStart = 0
 	
-	m = p.matchSyntax(ctx)
+	m = p.matchSyntax(0, ctx)
 	qa.assertEqual m, null
 	qa.assertEqual ctx.syntaxErrors[0] isa peg.SyntaxError, true
 	qa.assertEqual ctx.syntaxErrors[0].tag, "xxx"
@@ -90,7 +90,7 @@ testAndNoSubpatternSyntaxError = function
 	ctx.ruleName = "Foo"
 	ctx.ruleStart = 0
 	
-	m = p.matchSyntax(ctx)
+	m = p.matchSyntax(0, ctx)
 	qa.assertEqual m, null
 	qa.assertEqual ctx.syntaxErrors, []
 end function
@@ -105,7 +105,7 @@ testNotSyntaxError = function
 	ctx.ruleName = "Foo"
 	ctx.ruleStart = 0
 	
-	m = p.matchSyntax(ctx)
+	m = p.matchSyntax(0, ctx)
 	qa.assertEqual m, null
 	qa.assertEqual ctx.syntaxErrors[0] isa peg.SyntaxError, true
 	qa.assertEqual ctx.syntaxErrors[0].tag, "xxx"
@@ -122,7 +122,7 @@ testNotNoSubpatternSyntaxError = function
 	ctx.ruleName = "Foo"
 	ctx.ruleStart = 0
 	
-	m = p.matchSyntax(ctx)
+	m = p.matchSyntax(0, ctx)
 	qa.assertEqual m, null
 	qa.assertEqual ctx.syntaxErrors, []
 end function
@@ -139,7 +139,7 @@ testChoiceSyntaxError = function
 	ctx.ruleName = "Foo"
 	ctx.ruleStart = 0
 	
-	m = p.matchSyntax(ctx)
+	m = p.matchSyntax(0, ctx)
 	qa.assertEqual m, null
 	qa.assertEqual ctx.syntaxErrors[0] isa peg.SyntaxError, true
 	qa.assertEqual ctx.syntaxErrors[0].tag, "xxx"
@@ -157,7 +157,7 @@ testConcatSyntaxError = function
 	ctx.ruleName = "Foo"
 	ctx.ruleStart = 0
 	
-	m = p.matchSyntax(ctx)
+	m = p.matchSyntax(0, ctx)
 	qa.assertEqual m, null
 	qa.assertEqual ctx.syntaxErrors[0] isa peg.SyntaxError, true
 	qa.assertEqual ctx.syntaxErrors[0].tag, "xxx"
@@ -173,7 +173,7 @@ testOneOrMoreSyntaxError = function
 	ctx.ruleName = "Foo"
 	ctx.ruleStart = 0
 	
-	m = p.matchSyntax(ctx)
+	m = p.matchSyntax(0, ctx)
 	qa.assertEqual m, null
 	qa.assertEqual ctx.syntaxErrors[0] isa peg.SyntaxError, true
 	qa.assertEqual ctx.syntaxErrors[0].tag, "xxx"
@@ -190,7 +190,7 @@ testGrammarSyntaxError = function
 	ctx.ruleName = "Bar"
 	ctx.ruleStart = 0
 	
-	m = g.matchSyntax(ctx)
+	m = g.matchSyntax(0, ctx)
 	qa.assertEqual m, null
 	qa.assertEqual ctx.syntaxErrors[0] isa peg.SyntaxError, true
 	qa.assertEqual ctx.syntaxErrors[0].tag, "xxx"
@@ -210,7 +210,7 @@ testRuleRefSyntaxError = function
 	ctx.ruleStart = 0
 	ctx.grammar = _g
 	
-	m = p.matchSyntax(ctx)
+	m = p.matchSyntax(0, ctx)
 	qa.assertEqual m, null
 	qa.assertEqual ctx.syntaxErrors[0] isa peg.SyntaxError, true
 	qa.assertEqual ctx.syntaxErrors[0].tag, "xxx"
@@ -231,7 +231,7 @@ testCustomSyntaxError = function
 	end function
 	
 	ctx = peg.makeParseContext("x", 0)
-	m = g.matchSyntax(ctx)
+	m = g.matchSyntax(0, ctx)
 	qa.assertEqual m, null
 	qa.assertEqual ctx.syntaxErrors[0] isa peg.SyntaxError, true
 	qa.assertEqual ctx.syntaxErrors[0].tag, "xxx"
@@ -253,7 +253,7 @@ testCustomSyntaxErrorWithRuleName = function
 	end function
 	
 	ctx = peg.makeParseContext("x", 0)
-	m = g.matchSyntax(ctx)
+	m = g.matchSyntax(0, ctx)
 	qa.assertEqual m, null
 	qa.assertEqual ctx.syntaxErrors[0] isa peg.SyntaxError, true
 	qa.assertEqual ctx.syntaxErrors[0].tag, "xxx"

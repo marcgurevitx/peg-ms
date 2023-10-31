@@ -854,6 +854,7 @@ testPegGrammarOneRule = function
 	//
 	arg = {}
 	arg.ruleNames = {}
+	arg.usedFlags = {}
 	//
 	
 	res = g.parse("A  <-  'foo'", null, arg)
@@ -876,6 +877,7 @@ testPegGrammarManyRules = function
 	//
 	arg = {}
 	arg.ruleNames = {}
+	arg.usedFlags = {}
 	//
 	
 	res = g.parse("A  <-  B  B  <-  C  C  <-  'foo'", null, arg)
@@ -904,6 +906,7 @@ testPegGrammarErrorNoRuleDef = function
 	//
 	arg = {}
 	arg.ruleNames = {}
+	arg.usedFlags = {}
 	//
 	
 	res = g.parse("A  <-", null, arg)
@@ -920,6 +923,7 @@ testPegGrammarErrorNoArrow = function
 	//
 	arg = {}
 	arg.ruleNames = {}
+	arg.usedFlags = {}
 	//
 	
 	res = g.parse("A", null, arg)
@@ -936,6 +940,7 @@ testPegGrammarErrorNoRuleDefs = function
 	//
 	arg = {}
 	arg.ruleNames = {}
+	arg.usedFlags = {}
 	//
 	
 	res = g.parse("", null, arg)
@@ -952,6 +957,7 @@ testPegGrammarErrorMissingRule = function
 	//
 	arg = {}
 	arg.ruleNames = {}
+	arg.usedFlags = {}
 	//
 	
 	res = g.parse("A  <-  B", null, arg)
@@ -968,6 +974,7 @@ testPegGrammarInclusion = function
 	//
 	arg = {}
 	arg.ruleNames = {}
+	arg.usedFlags = {}
 	//
 	
 	res = g.parse("A  <-  B  B  <-  $", null, arg)
@@ -990,6 +997,7 @@ testPegGrammarErrorNoNoninclusionRules = function
 	//
 	arg = {}
 	arg.ruleNames = {}
+	arg.usedFlags = {}
 	//
 	
 	res = g.parse("A  <-  $  B  <-  $", null, arg)
@@ -1006,6 +1014,7 @@ testPegGrammarErrorRepeatingRuleNames = function
 	//
 	arg = {}
 	arg.ruleNames = {}
+	arg.usedFlags = {}
 	//
 	
 	res = g.parse("A  <-  [x]  A  <-  [y]", null, arg)
@@ -1022,6 +1031,7 @@ testPegGrammarInitialSpaces = function
 	//
 	arg = {}
 	arg.ruleNames = {}
+	arg.usedFlags = {}
 	//
 	
 	res = g.parse(" A<-.", null, arg)
@@ -1042,6 +1052,7 @@ testPegGrammarInclusions = function
 	//
 	arg = {}
 	arg.ruleNames = {}
+	arg.usedFlags = {}
 	//
 	
 	res = g.parse("A  <-  B  B  <-  C  C  <-  $", null, arg)

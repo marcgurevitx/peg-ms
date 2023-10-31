@@ -16,7 +16,7 @@ testAnyCharSetSemantics = function
 	ctx = peg.makeParseContext("a", 0)
 	ctx.grammar = _g
 	
-	m = p.matchSyntax(ctx)
+	m = p.matchSyntax(0, ctx)
 	qa.assertEqual m._str, "Match(0, 1, a, AnyChar() {capTag}, +)"
 end function
 
@@ -33,7 +33,7 @@ testCharSetSetSemantics = function
 	ctx = peg.makeParseContext("a", 0)
 	ctx.grammar = _g
 	
-	m = p.matchSyntax(ctx)
+	m = p.matchSyntax(0, ctx)
 	qa.assertEqual m._str, "Match(0, 1, a, CharSet(abc) {capTag}, +)"
 end function
 
@@ -50,7 +50,7 @@ testCharRangeSetSemantics = function
 	ctx = peg.makeParseContext("a", 0)
 	ctx.grammar = _g
 	
-	m = p.matchSyntax(ctx)
+	m = p.matchSyntax(0, ctx)
 	qa.assertEqual m._str, "Match(0, 1, a, CharRange(a, c) {capTag}, +)"
 end function
 
@@ -67,7 +67,7 @@ testLiteralSetSemantics = function
 	ctx = peg.makeParseContext("foo", 0)
 	ctx.grammar = _g
 	
-	m = p.matchSyntax(ctx)
+	m = p.matchSyntax(0, ctx)
 	qa.assertEqual m._str, "Match(0, 3, foo, Literal(foo) {capTag}, +)"
 end function
 
@@ -85,7 +85,7 @@ testAndSetSemantics = function
 	ctx = peg.makeParseContext("foo", 0)
 	ctx.grammar = _g
 	
-	m = p.matchSyntax(ctx)
+	m = p.matchSyntax(0, ctx)
 	qa.assertEqual m._str,  "Match(0, 0, , And() {capTag}, +)" + _NL +
 	                        " Match(0, 3, foo, Literal(foo))"
 end function
@@ -104,7 +104,7 @@ testNotSetSemantics = function
 	ctx = peg.makeParseContext("x", 0)
 	ctx.grammar = _g
 	
-	m = p.matchSyntax(ctx)
+	m = p.matchSyntax(0, ctx)
 	qa.assertEqual m._str, "Match(0, 0, , Not() {capTag}, +)"
 end function
 
@@ -124,7 +124,7 @@ testChoiceSetSemantics = function
 	ctx = peg.makeParseContext("bar", 0)
 	ctx.grammar = _g
 	
-	m = p.matchSyntax(ctx)
+	m = p.matchSyntax(0, ctx)
 	qa.assertEqual m._str,  "Match(0, 3, bar, Choice() {capTag}, +)" + _NL +
 	                        " Match(0, 3, bar, Literal(bar))"
 end function
@@ -145,7 +145,7 @@ testConcatSetSemantics = function
 	ctx = peg.makeParseContext("foobarbaz", 0)
 	ctx.grammar = _g
 	
-	m = p.matchSyntax(ctx)
+	m = p.matchSyntax(0, ctx)
 	qa.assertEqual m._str,  "Match(0, 9, foobarbaz, Concat() {capTag}, +)" + _NL +
 	                        " Match(0, 3, foo, Literal(foo))" + _NL +
 	                        " Match(3, 3, bar, Literal(bar))" + _NL +
@@ -166,7 +166,7 @@ testOptionalSetSemantics = function
 	ctx = peg.makeParseContext("x", 0)
 	ctx.grammar = _g
 	
-	m = p.matchSyntax(ctx)
+	m = p.matchSyntax(0, ctx)
 	qa.assertEqual m._str,  "Match(0, 0, , Optional() {capTag}, +)"
 end function
 
@@ -184,7 +184,7 @@ testZeroOrMoreSetSemantics = function
 	ctx = peg.makeParseContext("x", 0)
 	ctx.grammar = _g
 	
-	m = p.matchSyntax(ctx)
+	m = p.matchSyntax(0, ctx)
 	qa.assertEqual m._str,  "Match(0, 0, , ZeroOrMore() {capTag}, +)"
 end function
 
@@ -202,7 +202,7 @@ testOneOrMoreSetSemantics = function
 	ctx = peg.makeParseContext("foo", 0)
 	ctx.grammar = _g
 	
-	m = p.matchSyntax(ctx)
+	m = p.matchSyntax(0, ctx)
 	qa.assertEqual m._str,  "Match(0, 3, foo, OneOrMore() {capTag}, +)" + _NL +
 	                        " Match(0, 3, foo, Literal(foo))"
 end function
@@ -223,7 +223,7 @@ testGrammarSetSemantics = function
 	ctx = peg.makeParseContext("foo", 0)
 	ctx.grammar = _g
 	
-	m = g.matchSyntax(ctx)
+	m = g.matchSyntax(0, ctx)
 	qa.assertEqual m._str,  "Match(0, 3, foo, Grammar(Foo) {capTag}, +)" + _NL +
 	                        " Match(0, 3, foo, Literal(foo))"
 end function
@@ -242,7 +242,7 @@ testRuleRefSetSemantics = function
 	ctx = peg.makeParseContext("foo", 0)
 	ctx.grammar = _g
 	
-	m = p.matchSyntax(ctx)
+	m = p.matchSyntax(0, ctx)
 	qa.assertEqual m._str,  "Match(0, 3, foo, RuleRef(Foo) {capTag}, +)" + _NL +
 	                        " Match(0, 3, foo, Literal(foo))"
 end function
@@ -257,7 +257,7 @@ testAddCaptureWithoutRuleName = function
 	end function
 	
 	ctx = peg.makeParseContext("foo", 0)
-	m = g.matchSyntax(ctx)
+	m = g.matchSyntax(0, ctx)
 	c = m.captureValues(ctx)
 	qa.assertEqual c.list, [42]
 	qa.assertEqual c.map, {}
@@ -273,7 +273,7 @@ testAddCaptureWithRuleName = function
 	end function
 	
 	ctx = peg.makeParseContext("foo", 0)
-	m = g.matchSyntax(ctx)
+	m = g.matchSyntax(0, ctx)
 	c = m.captureValues(ctx)
 	qa.assertEqual c.list, [42]
 	qa.assertEqual c.map, {}
