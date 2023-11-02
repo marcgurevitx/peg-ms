@@ -1280,10 +1280,19 @@ ParseResult.capture = function
 end function
 
 
-// testHasErrorTag: Returns true if one of the errors has the given tag.
+// hasErrorTag: Returns true if one of the errors has the given tag.
 ParseResult.hasErrorTag = function(tag)
 	for error in self.errors
 		if error.tag == tag then return true
+	end for
+	return false
+end function
+
+
+// hasErrorType: Returns true if one of the errors is of a given type.
+ParseResult.hasErrorType = function(typ)
+	for error in self.errors
+		if error isa typ then return true
 	end for
 	return false
 end function

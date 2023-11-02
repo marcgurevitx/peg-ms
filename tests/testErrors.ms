@@ -13,3 +13,24 @@ testHasErrorTag = function
 	qa.assertEqual res.hasErrorTag("expectedBaz"), true
 end function
 
+
+testHasErrorType = function
+	E1 = new peg.Error
+	E2 = new peg.Error
+	
+	g = new peg.Grammar
+	g.init "A <- 'foo'<xxx>"
+	
+	_xxx = function(match, _, _, ctx)
+		e = new E1
+		e.message = "hello"
+		ctx.syntaxErrors.push e
+		return match
+	end function
+	g.matchTime "xxx", @_xxx
+	
+	res = g.parse("foo")
+	qa.assertEqual res.hasErrorType(E1), true
+	qa.assertEqual res.hasErrorType(E2), false
+end function
+
