@@ -1,5 +1,7 @@
-// ?
-
+// Records steps and replays them in an interactive cli.
+//
+//  ensureImport "examples/playSteps"
+//  globals["examples/playSteps"].install
 
 
 if globals.hasIndex("ensureImport") then
@@ -74,7 +76,7 @@ getStepRecorder = function
 		for idx in steps.indexes
 			
 			//
-			if idx % 100 == 0 then yield
+			if idx % 500 == 0 then yield
 			//
 			
 			step = steps[idx]
@@ -289,6 +291,21 @@ getStepRecorder = function
 	end function
 	commands.push cmdSkipForward
 	
+	cmdSkipForwardToParent = {}
+	cmdSkipForwardToParent.cmd = "nnn"
+	cmdSkipForwardToParent.help = "Fast forward to the parent"
+	cmdSkipForwardToParent.func = function(arg)
+		step = steps[currentIndex]
+		for i in range(currentIndex + 1, steps.len - 1, 1)
+			if steps[i].depth == step.depth - 1 then
+				outer.currentIndex = i
+				break
+			end if
+		end for
+		return true  // print screen
+	end function
+	commands.push cmdSkipForwardToParent
+	
 	cmdBack = {}
 	cmdBack.cmd = "b"
 	cmdBack.help = "Previous step"
@@ -313,6 +330,21 @@ getStepRecorder = function
 		return true  // print screen
 	end function
 	commands.push cmdSkipBackward
+	
+	cmdSkipBackwardToParent = {}
+	cmdSkipBackwardToParent.cmd = "bbb"
+	cmdSkipBackwardToParent.help = "Fast backward to the parent"
+	cmdSkipBackwardToParent.func = function(arg)
+		step = steps[currentIndex]
+		for i in range(currentIndex - 1, 0, -1)
+			if steps[i].depth == step.depth - 1 then
+				outer.currentIndex = i
+				break
+			end if
+		end for
+		return true  // print screen
+	end function
+	commands.push cmdSkipBackwardToParent
 	
 	cmdFlags = {}
 	cmdFlags.cmd = "f"
