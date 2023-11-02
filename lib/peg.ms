@@ -1783,13 +1783,14 @@ _makePegGrammar = function
 	
 	// Space
 	
-	_spacePeg = "( Comment  /  [ \t\n\r] ) *"
+	_spacePeg = "( Comment  /  [ \t\n\r] + ) *"
 	
 	g.addRule "Space",
 		makeZeroOrMore(
 			makeChoice([
 				makeRuleRef("Comment"),
-				makeCharSet(" " + char(9) + char(10) + char(13)),
+				makeOneOrMore(
+					makeCharSet(" " + char(9) + char(10) + char(13))),
 			]))
 	
 	g.getRulePattern("Space")._DEBUG_PEG = _spacePeg

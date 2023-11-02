@@ -19,7 +19,20 @@ ensureImport "stringUtil"
 ensureImport "peg"
 
 
-peg.getStepRecorder = function
+// install: ?
+install = function
+	peg.getStepRecorder = @getStepRecorder
+end function
+
+
+// uninstall: ?
+uninstall = function
+	peg.getStepRecorder = null
+end function
+
+
+// getStepRecorder: ?
+getStepRecorder = function
 	
 	rec = {}
 	
@@ -59,6 +72,11 @@ peg.getStepRecorder = function
 			end if
 		end for
 		for idx in steps.indexes
+			
+			//
+			if idx % 100 == 0 then yield
+			//
+			
 			step = steps[idx]
 			branch = []
 			if step.type == peg.stepType.match or step.type == peg.stepType.success or step.type == peg.stepType.failure then
