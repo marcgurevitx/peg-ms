@@ -1,6 +1,6 @@
 // Pattern-matching library for MiniScript.
 
-msVersion = @version
+iVersion = @version
 version = "0.0.1"
 
 
@@ -23,7 +23,7 @@ ensureImport "mapUtil"
 ensureImport "stringUtil"
 
 
-if msVersion.hostName == "Mini Micro" then _NL = char(13) else _NL = char(10)
+if iVersion.hostName == "Mini Micro" then _NL = char(13) else _NL = char(10)
 
 
 maxErrorFragment = 20
@@ -102,7 +102,7 @@ Tree.init = function
 end function
 
 
-Tree._str = function
+Tree._str = function(depth, seen)
 	if not self._inited then return self._name + " class"
 	lines = [self.nodeToStr]
 	for node in self.children
@@ -157,7 +157,7 @@ Error.init = function(message)
 end function
 
 
-Error._str = function
+Error._str = function(depth, seen)
 	return self._name + "({message})".fill(self)
 end function
 
@@ -1251,7 +1251,7 @@ ParseResult.init = function
 end function
 
 
-ParseResult._str = function
+ParseResult._str = function(depth, seen)
 	if self.length == null then
 		l = "null"
 	else
@@ -1360,7 +1360,7 @@ Grammar._parsePegString = function(pegString)
 end function
 
 
-Grammar._str = function
+Grammar._str = function(depth, seen)
 	if not self._inited then return self._name + " class"
 	lines = [self.nodeToStr]
 	for ruleName in self.ruleOrder
@@ -2174,7 +2174,7 @@ _makePegGrammar = function
 	
 	// If
 	
-	_ifPeg =    "( [%]  Space  'if' <noIfKeyword!>  ! Identifier  Space  " +
+	_ifPeg =    "( [%]  Space  'if'  ! Identifier  Space  " +
 	            "( ( Identifier  ( [.]  Identifier ) * ) {ifFlag:} ) <noFlag!>  " +
 	            "( 'then'  Space ) ?  [%] <noClosingPercent!>  Space  " +
 	            "( Pattern {ifTrue:0} ) <noTruePattern!>  " +
@@ -2185,7 +2185,7 @@ _makePegGrammar = function
 		makeConcat([
 			makeCharSet("%"),
 			makeRuleRef("Space"),
-			makeLiteral("if").withMatchTimeTag("noIfKeyword!"),
+			makeLiteral("if"),
 			makeNot(
 				makeRuleRef("Identifier")),
 			makeRuleRef("Space"),
