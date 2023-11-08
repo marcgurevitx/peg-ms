@@ -148,11 +148,13 @@ end function
 // Error: Base class for syntax and semantic errors.
 Error = {}
 Error._name = "peg.Error"
+Error._inited = false
 Error.tag = null
 Error.message = null
 
 
 Error.init = function(message)
+	self._inited = true
 	self.message = message
 end function
 
@@ -1239,6 +1241,7 @@ end function
 // ParseResult: Collection of data that represents the result of a call to `Grammar.parse`.
 ParseResult = {}
 ParseResult._name = "peg.ParseResult"
+ParseResult._inited = false
 ParseResult.match = null
 ParseResult.length = null
 ParseResult.errors = null
@@ -1246,6 +1249,7 @@ ParseResult.captures = null
 
 
 ParseResult.init = function
+	self._inited = true
 	self.errors = []
 	self.captures = {"list": [], "map": {}}
 end function
