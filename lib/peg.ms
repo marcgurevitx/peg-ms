@@ -927,7 +927,7 @@ makeConcat = function(patterns)
 end function
 
 
-// Optional: Pattern that succeeds if one or zero occurrences of its subpattern match:  PATT ?
+// Optional: Pattern that that matches one or zero occurrences of its subpattern:  PATT ?
 Optional = new Pattern
 Optional._name = "peg.Optional"
 
@@ -977,7 +977,7 @@ makeOptional = function(pattern)
 end function
 
 
-// ZeroOrMore: Pattern that succeeds if zero or more occurrences of its subpattern match:  PATT *
+// ZeroOrMore: Pattern that matches zero or more occurrences of its subpattern:  PATT *
 ZeroOrMore = new Pattern
 ZeroOrMore._name = "peg.ZeroOrMore"
 
@@ -1052,7 +1052,7 @@ OneOrMore.nodeToStr = function
 end function
 
 
-// _matchSyntaxLogic: Succeeds if zero or more occurrences of the subpattern match.
+// _matchSyntaxLogic: Succeeds if one or more occurrences of the subpattern match.
 OneOrMore._matchSyntaxLogic = function(depth, ctx, arg=null)
 	pattern = self.getOnlyChild
 	subms = []
@@ -1479,7 +1479,7 @@ end function
 
 // addMatchTimeAction: Registers a match-time action.
 // The callback will be invoked in the match time when the tagged pattern either succeeds or fails.
-// The callback should have a signature: f(match, subcaptures, arg, ctx) -> capture.
+// The callback should have a signature: f(match, subcaptures, arg, ctx) -> newMatch.
 // If the callback is a string, then it will be used as an error message if the match fails.
 // Optional first arg is the name of the rule whose definition contains the tag.
 Grammar.addMatchTimeAction = function(arg1, arg2, arg3=null)

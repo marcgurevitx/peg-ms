@@ -1,8 +1,24 @@
 // expandVars("  $foo  ", {"foo": "bar"})  =>  "  bar  "
 
 
-import "mapUtil"
-import "peg"
+// ensureImport: Imports a module and caches it in `globals`.
+// Use an existing function if present.
+// (Some platforms don't have this or the user might have implemented their own `ensureImport`.)
+if globals.hasIndex("ensureImport") then
+	ensureImport = @globals.ensureImport
+else
+	// from /sys/lib/importUtil.ms
+	ensureImport = function(moduleName)
+		if globals.hasIndex(moduleName) then return
+		globals[moduleName] = "PENDING"	// (module is being imported now)
+		import moduleName
+		globals[moduleName] = locals[moduleName]
+	end function
+end if
+
+
+ensureImport "mapUtil"
+ensureImport "peg"
 
 
 _grammar = peg.Grammar
